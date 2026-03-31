@@ -20,11 +20,6 @@ const Sidebar_list = [
     title: "Menu Utama",
     list: [
       {
-        title: "Daftar Paket",
-        link: "/daftar-paket",
-        icon: <BsClipboardDataFill size={18} />,
-      },
-      {
         title: "Dashboard",
         link: "/",
         icon: <IoHomeSharp size={18} />,
