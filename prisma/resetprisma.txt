@@ -1,0 +1,3 @@
+npx prisma migrate reset
+npx prisma migrate dev --name nama_migrasi
+npx prisma generate

@@ -1,0 +1,269 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --------------------
+// Akun dan Autentikasi
+model Akun {
+  email        String       @id @unique
+  nama         String
+  password     String
+  telepon      String?
+  gambar       String?
+  jenisKelamin JenisKelamin
+  role         Role
+  created      DateTime     @default(now())
+  updated      DateTime     @updatedAt
+
+  profil      ProfilAkun?
+  pendaftaran Pendaftaran[]
+
+  sessions Session[]
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  createdAt    DateTime @default(now())
+
+  user Akun @relation(fields: [userId], references: [email])
+}
+
+// --------------------
+// Profil pengguna (data pribadi)
+model ProfilAkun {
+  id           String    @id @default(cuid())
+  akunEmail    String    @unique
+  tempatLahir  String?
+  tanggalLahir DateTime?
+  statusNikah  String?
+  alamatJalan  String?
+  kota         String?
+  provinsi     String?
+  kodePos      String?
+
+  nomorPaspor   String?
+  tanggalTerbit DateTime?
+  tanggalHabis  DateTime?
+  negaraPaspor  String?
+
+  created DateTime @default(now())
+  updated DateTime @updatedAt
+
+  akun Akun @relation(fields: [akunEmail], references: [email])
+}
+
+// --------------------
+// Paket Umrah
+model Paket {
+  id               String   @id @default(cuid())
+  nama             String
+  deskripsi        String
+  tanggalBerangkat DateTime
+  tanggalPulang    DateTime
+  harga            Int
+  kuota            Int
+  gambar           String
+
+  hotelId       String
+  penerbanganId String
+  status        StatusPaket @default(AKTIF)
+  created       DateTime    @default(now())
+  updated       DateTime    @updatedAt
+
+  hotel       Hotel         @relation(fields: [hotelId], references: [id])
+  penerbangan Penerbangan   @relation(fields: [penerbanganId], references: [id])
+  pendaftaran Pendaftaran[]
+}
+
+// --------------------
+// Pendaftaran oleh Jamaah
+model Pendaftaran {
+  id        String            @id @default(cuid())
+  akunEmail String
+  paketId   String
+  status    StatusPendaftaran @default(TIDAK_TERKONFIRMASI)
+  created   DateTime          @default(now())
+
+  akun  Akun  @relation(fields: [akunEmail], references: [email])
+  paket Paket @relation(fields: [paketId], references: [id])
+
+  pembayaran   Pembayaran[]
+  pengumuman   Pengumuman[]
+  perlengkapan Perlengkapan[]
+  dokumen      Dokumen[]
+  iternary     Iternary[]
+}
+
+// --------------------
+// Itinerary / Jadwal Perjalanan
+model Iternary {
+  id            String    @id @default(cuid())
+  pendaftaranId String
+  hariKe        Int
+  aktivitas     String
+  lokasi        String?
+  waktuMulai    DateTime?
+  waktuSelesai  DateTime?
+  created       DateTime  @default(now())
+  updated       DateTime  @updatedAt
+
+  pendaftaran Pendaftaran @relation(fields: [pendaftaranId], references: [id])
+}
+
+// --------------------
+// Pembayaran (Cicilan)
+model Pembayaran {
+  id            String           @id @default(cuid())
+  pendaftaranId String
+  jumlah        Int
+  buktiUrl      String?
+  status        StatusPembayaran @default(MENUNGGU)
+  created       DateTime         @default(now())
+
+  pendaftaran Pendaftaran @relation(fields: [pendaftaranId], references: [id])
+}
+
+// --------------------
+// Dokumen Jamaah
+model Dokumen {
+  id            String        @id @default(cuid())
+  pendaftaranId String
+  akunEmail     String
+  jenis         JenisDokumen
+  url           String
+  status        StatusDokumen @default(MENUNGGU)
+  created       DateTime      @default(now())
+
+  pendaftaran Pendaftaran @relation(fields: [pendaftaranId], references: [id])
+}
+
+// --------------------
+// Pengumuman dari Admin
+model Pengumuman {
+  id             String    @id @default(cuid())
+  judul          String
+  isi            String
+  tanggalMulai   DateTime
+  tanggalSelesai DateTime?
+  aktif          Boolean   @default(true)
+  dibuatOlehId   String
+  pendaftaranId  String
+  created        DateTime  @default(now())
+  updated        DateTime  @updatedAt
+
+  pendaftaran Pendaftaran @relation(fields: [pendaftaranId], references: [id])
+}
+
+// --------------------
+// Hotel
+model Hotel {
+  id        String   @id @default(cuid())
+  nama      String
+  bintang   Int?
+  lokasi    Lokasi
+  alamat    String?
+  petaUrl   String?
+  deskripsi String?
+  created   DateTime @default(now())
+  updated   DateTime @updatedAt
+
+  paket Paket[]
+}
+
+// --------------------
+// Penerbangan
+model Penerbangan {
+  id               String    @id @default(cuid())
+  maskapai         String?
+  bandaraBerangkat String    @default("Raden Intan Lampung")
+  bandaraTiba      String?
+  waktuBerangkat   DateTime?
+  waktuTiba        DateTime?
+  created          DateTime  @default(now())
+  updated          DateTime  @updatedAt
+
+  paket Paket[]
+}
+
+// --------------------
+// Perlengkapan Jamaah
+model Perlengkapan {
+  id            String            @id @default(cuid())
+  pendaftaranId String
+  jenis         JenisPerlengkapan
+  sudahDiterima Boolean           @default(false)
+  tanggalTerima DateTime?
+  created       DateTime          @default(now())
+  updated       DateTime          @updatedAt
+
+  pendaftaran Pendaftaran @relation(fields: [pendaftaranId], references: [id])
+}
+
+// --------------------
+// ENUMS
+
+enum Role {
+  jamaah
+  ADMIN_KEUANGAN
+  ADMIN_OPERASIONAL
+}
+
+enum JenisKelamin {
+  LAKI_LAKI
+  PEREMPUAN
+}
+
+enum StatusPaket {
+  AKTIF
+  NONAKTIF
+  DITUTUP
+}
+
+enum StatusPendaftaran {
+  MENUNGGU
+  TERKONFIRMASI
+  TIDAK_TERKONFIRMASI
+}
+
+enum StatusPembayaran {
+  MENUNGGU
+  TERVERIFIKASI
+  DITOLAK
+}
+
+enum JenisDokumen {
+  PASPOR
+  KTP
+  FOTO
+  VAKSIN
+  VISA
+}
+
+enum StatusDokumen {
+  MENUNGGU
+  DISETUJUI
+  DITOLAK
+}
+
+enum JenisPerlengkapan {
+  KOPER
+  BAJU_IHRAM
+  MUKENA
+  NAMETAG
+  BUKU_DOA_DAN_PANDUAN
+  SYAL
+  TAS_TRAVEL
+}
+
+enum Lokasi {
+  MEKKAH
+  MADINAH
+}

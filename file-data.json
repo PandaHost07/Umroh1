@@ -1,0 +1,21 @@
+{
+  "keterangan": "Data 2 akun staff: Admin Keuangan + Admin Operasional. Ganti email/password jika perlu, lalu jalankan: node file-data.js",
+  "users": [
+    {
+      "email": "admin.keuangan@adatourtravel.local",
+      "nama": "Admin Keuangan",
+      "role": "ADMIN_KEUANGAN",
+      "jenisKelamin": "LAKI_LAKI",
+      "telepon": "081200000001",
+      "passwordAwal": "AdminKeuangan1!"
+    },
+    {
+      "email": "admin.operasional@adatourtravel.local",
+      "nama": "Admin Operasional",
+      "role": "ADMIN_OPERASIONAL",
+      "jenisKelamin": "LAKI_LAKI",
+      "telepon": "081200000002",
+      "passwordAwal": "AdminOperasional1!"
+    }
+  ]
+}
