@@ -22,6 +22,7 @@ model Akun {
 
   profil      ProfilAkun?
   pendaftaran Pendaftaran[]
+  testimoni   Testimoni[]
 
   sessions Session[]
 }
@@ -206,6 +207,19 @@ model Perlengkapan {
   updated       DateTime          @updatedAt
 
   pendaftaran Pendaftaran @relation(fields: [pendaftaranId], references: [id])
+}
+
+// --------------------
+// Testimoni Jamaah
+model Testimoni {
+  id        String   @id @default(cuid())
+  akunEmail String
+  rating    Int
+  pesan     String
+  status    String   @default("PUBLIK")
+  created   DateTime @default(now())
+
+  akun Akun @relation(fields: [akunEmail], references: [email])
 }
 
 // --------------------

@@ -3,13 +3,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { Button, Badge, Spinner, Modal, Label, TextInput } from "flowbite-react";
-import { HiUpload, HiEye, HiUser, HiDocumentText, HiStar, HiPencil } from "react-icons/hi";
+import { HiUpload, HiEye, HiUser, HiDocumentText, HiStar, HiPencil, HiCamera } from "react-icons/hi";
 import { FaStar } from "react-icons/fa";
 import { alertSuccess, alertError } from "@/components/Alert/alert";
-import formatDate from "@/components/Date/formatDate";
+import Image from "next/image";
 
 const JENIS_DOKUMEN = ["PASPOR", "KTP", "FOTO", "VAKSIN", "VISA"];
-
 const STATUS_COLOR = { MENUNGGU: "warning", DISETUJUI: "success", DITOLAK: "failure" };
 
 export default function ProfilePage() {
@@ -18,24 +17,22 @@ export default function ProfilePage() {
   const [pendaftaranList, setPendaftaranList] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Edit profil
   const [editMode, setEditMode] = useState(false);
   const [nama, setNama] = useState("");
   const [telepon, setTelepon] = useState("");
   const [savingProfil, setSavingProfil] = useState(false);
+  const [uploadingFoto, setUploadingFoto] = useState(false);
+  const [fotoPreview, setFotoPreview] = useState(null);
 
-  // Ganti password
   const [newPass, setNewPass] = useState("");
   const [confirmPass, setConfirmPass] = useState("");
   const [savingPass, setSavingPass] = useState(false);
 
-  // Upload dokumen
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedDokumen, setSelectedDokumen] = useState(null);
   const [dokumenFile, setDokumenFile] = useState(null);
   const [uploading, setUploading] = useState(false);
 
-  // Testimoni
   const [showTestimoniModal, setShowTestimoniModal] = useState(false);
   const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState(0);
@@ -61,7 +58,27 @@ export default function ProfilePage() {
 
   useEffect(() => { fetchPendaftaran(); }, [fetchPendaftaran]);
 
-  // Simpan profil
+  const handleUploadFoto = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) { alertError("Foto maksimal 2MB"); return; }
+    if (!file.type.startsWith("image/")) { alertError("File harus berupa gambar"); return; }
+
+    setFotoPreview(URL.createObjectURL(file));
+    setUploadingFoto(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("email", session.user.email);
+      const res = await fetch("/api/jamaah/upload-foto", { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal upload foto");
+      alertSuccess("Foto profil berhasil diperbarui!");
+      await update(); // refresh session
+    } catch (err) { alertError(err.message); setFotoPreview(null); }
+    finally { setUploadingFoto(false); }
+  };
+
   const handleSaveProfil = async (e) => {
     e.preventDefault();
     setSavingProfil(true);
@@ -75,11 +92,11 @@ export default function ProfilePage() {
       if (!res.ok) throw new Error(data.error || "Gagal menyimpan");
       alertSuccess("Profil berhasil diperbarui!");
       setEditMode(false);
+      await update();
     } catch (err) { alertError(err.message); }
     finally { setSavingProfil(false); }
   };
 
-  // Ganti password
   const handleChangePassword = async (e) => {
     e.preventDefault();
     if (newPass !== confirmPass) { alertError("Password tidak cocok"); return; }
@@ -99,7 +116,6 @@ export default function ProfilePage() {
     finally { setSavingPass(false); }
   };
 
-  // Upload dokumen
   const handleUploadDokumen = async () => {
     if (!dokumenFile || !selectedDokumen) return;
     setUploading(true);
@@ -120,7 +136,6 @@ export default function ProfilePage() {
     finally { setUploading(false); }
   };
 
-  // Kirim testimoni
   const handleSubmitTestimoni = async () => {
     if (!pesan.trim() || pesan.trim().length < 10) { alertError("Pesan minimal 10 karakter"); return; }
     setSubmittingTestimoni(true);
@@ -139,6 +154,8 @@ export default function ProfilePage() {
     finally { setSubmittingTestimoni(false); }
   };
 
+  const fotoUrl = fotoPreview || session?.user?.gambar || null;
+
   const TABS = [
     { id: "profil", label: "Data Pribadi", icon: <HiUser /> },
     { id: "dokumen", label: "Dokumen", icon: <HiDocumentText /> },
@@ -149,23 +166,31 @@ export default function ProfilePage() {
     <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-4">
       <h1 className="text-2xl font-bold">Profile Saya</h1>
 
-      {/* Tab buttons */}
-      <div className="flex gap-2 border-b">
+      <div className="flex gap-2 border-b overflow-x-auto">
         {TABS.map((t) => (
           <button key={t.id} onClick={() => setTab(t.id)}
-            className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === t.id ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}>
+            className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${tab === t.id ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}>
             {t.icon} {t.label}
           </button>
         ))}
       </div>
 
-      {/* TAB: Data Pribadi */}
       {tab === "profil" && (
         <div className="bg-white rounded-xl border p-6 space-y-6">
-          {/* Avatar */}
+          {/* Avatar dengan upload */}
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center border-2 border-blue-200">
-              <HiUser className="text-blue-400 w-8 h-8" />
+            <div className="relative">
+              <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center border-2 border-blue-200 overflow-hidden">
+                {fotoUrl ? (
+                  <Image src={fotoUrl} alt="foto profil" width={80} height={80} className="w-full h-full object-cover" />
+                ) : (
+                  <HiUser className="text-blue-400 w-10 h-10" />
+                )}
+              </div>
+              <label className="absolute -bottom-1 -right-1 w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-700 transition-colors">
+                {uploadingFoto ? <Spinner size="xs" color="white" /> : <HiCamera className="text-white w-4 h-4" />}
+                <input type="file" accept="image/*" className="hidden" onChange={handleUploadFoto} disabled={uploadingFoto} />
+              </label>
             </div>
             <div>
               <p className="font-bold text-lg">{session?.user?.nama || "-"}</p>
@@ -174,7 +199,6 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Form edit profil */}
           <form onSubmit={handleSaveProfil} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -196,15 +220,15 @@ export default function ProfilePage() {
             </div>
             <div className="flex gap-2">
               {!editMode ? (
-                <Button type="button" color="blue" onClick={() => setEditMode(true)}>
+                <Button type="button" color="blue" size="sm" onClick={() => setEditMode(true)}>
                   <HiPencil className="mr-1" /> Edit Profil
                 </Button>
               ) : (
                 <>
-                  <Button type="submit" color="blue" disabled={savingProfil}>
+                  <Button type="submit" color="blue" size="sm" disabled={savingProfil}>
                     {savingProfil ? <Spinner size="sm" /> : "Simpan"}
                   </Button>
-                  <Button type="button" color="gray" onClick={() => { setEditMode(false); setNama(session?.user?.nama || ""); setTelepon(session?.user?.telepon || ""); }}>
+                  <Button type="button" color="gray" size="sm" onClick={() => { setEditMode(false); setNama(session?.user?.nama || ""); setTelepon(session?.user?.telepon || ""); }}>
                     Batal
                   </Button>
                 </>
@@ -212,9 +236,8 @@ export default function ProfilePage() {
             </div>
           </form>
 
-          {/* Ganti password */}
           <div className="border-t pt-4">
-            <h3 className="font-semibold mb-3">Ganti Password</h3>
+            <h3 className="font-semibold mb-3 text-sm">Ganti Password</h3>
             <form onSubmit={handleChangePassword} className="space-y-3 max-w-sm">
               <div>
                 <Label value="Password Baru" />
@@ -224,7 +247,7 @@ export default function ProfilePage() {
                 <Label value="Konfirmasi Password" />
                 <TextInput type="password" value={confirmPass} onChange={(e) => setConfirmPass(e.target.value)} required className="mt-1" />
               </div>
-              <Button type="submit" color="blue" disabled={savingPass}>
+              <Button type="submit" color="blue" size="sm" disabled={savingPass}>
                 {savingPass ? <Spinner size="sm" /> : "Ganti Password"}
               </Button>
             </form>
@@ -232,41 +255,38 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* TAB: Dokumen */}
       {tab === "dokumen" && (
         <div className="space-y-4">
           {loading ? (
             <div className="flex justify-center py-10"><Spinner size="xl" /></div>
-          ) : pendaftaranList.length === 0 ? (
+          ) : pendaftaranList.filter(p => p.status !== "TIDAK_TERKONFIRMASI").length === 0 ? (
             <div className="bg-white rounded-xl border p-8 text-center text-gray-400">
-              Belum ada pemesanan paket. Pesan paket terlebih dahulu untuk upload dokumen.
+              Belum ada pemesanan paket aktif.
             </div>
           ) : (
-            pendaftaranList.map((pendaftaran) => (
+            pendaftaranList.filter(p => p.status !== "TIDAK_TERKONFIRMASI").map((pendaftaran) => (
               <div key={pendaftaran.id} className="bg-white rounded-xl border p-5">
                 <h3 className="font-bold mb-1">{pendaftaran.paket?.nama}</h3>
                 <p className="text-xs text-gray-400 mb-4">Upload dokumen persyaratan umrah</p>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
                   {JENIS_DOKUMEN.map((jenis) => {
                     const dok = pendaftaran.dokumen?.find((d) => d.jenis === jenis);
                     return (
                       <div key={jenis} className="border rounded-lg p-3 text-center">
-                        <p className="font-semibold text-sm mb-2">{jenis}</p>
+                        <p className="font-semibold text-xs mb-2">{jenis}</p>
                         {dok ? (
                           <div className="space-y-1">
                             <Badge color={STATUS_COLOR[dok.status] ?? "gray"} size="xs" className="mx-auto">{dok.status}</Badge>
                             <div className="flex gap-1 justify-center mt-2">
-                              {dok.url && (
-                                <Button size="xs" color="light" onClick={() => window.open(dok.url, "_blank")}><HiEye size={12} /></Button>
-                              )}
+                              {dok.url && <Button size="xs" color="light" onClick={() => window.open(dok.url, "_blank")}><HiEye size={11} /></Button>}
                               <Button size="xs" color="blue" onClick={() => { setSelectedDokumen(dok); setDokumenFile(null); setShowUploadModal(true); }}>
-                                <HiUpload size={12} />
+                                <HiUpload size={11} />
                               </Button>
                             </div>
                           </div>
                         ) : (
                           <Button size="xs" color="blue" className="w-full mt-2" onClick={() => { setSelectedDokumen({ jenis, pendaftaranId: pendaftaran.id, isNew: true }); setDokumenFile(null); setShowUploadModal(true); }}>
-                            <HiUpload size={12} className="mr-1" /> Upload
+                            <HiUpload size={11} className="mr-1" /> Upload
                           </Button>
                         )}
                       </div>
@@ -279,12 +299,11 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* TAB: Testimoni */}
       {tab === "testimoni" && (
         <div className="bg-white rounded-xl border p-8 text-center">
           <div className="text-5xl mb-3">⭐</div>
           <h3 className="text-xl font-semibold mb-2">Bagikan Pengalaman Anda</h3>
-          <p className="text-gray-500 text-sm mb-6">Ceritakan pengalaman ibadah umrah Anda dan bantu jamaah lain</p>
+          <p className="text-gray-500 text-sm mb-6">Ceritakan pengalaman ibadah umrah Anda</p>
           <Button color="blue" onClick={() => setShowTestimoniModal(true)}>Tulis Testimoni</Button>
         </div>
       )}

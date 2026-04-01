@@ -1,227 +1,226 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
-import { Card, Badge, Timeline, Alert, Spinner } from "flowbite-react";
+import { Badge, Spinner, Alert } from "flowbite-react";
 import formatDate from "@/components/Date/formatDate";
 import { HiCalendar, HiClock, HiLocationMarker, HiUserGroup } from "react-icons/hi";
+import { useRouter } from "next/navigation";
 
-export default function KeberangkatanPage() {
-  const { data: session } = useSession();
-  const [pendaftaranList, setPendaftaranList] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+function CountdownTimer({ targetDate }) {
+  const [timeLeft, setTimeLeft] = useState({});
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    fetchPendaftaran();
-  }, []);
+    setMounted(true);
+    const calc = () => {
+      const diff = new Date(targetDate) - new Date();
+      if (diff <= 0) return { hari: 0, jam: 0, menit: 0, detik: 0, lewat: true };
+      return {
+        hari: Math.floor(diff / 86400000),
+        jam: Math.floor((diff % 86400000) / 3600000),
+        menit: Math.floor((diff % 3600000) / 60000),
+        detik: Math.floor((diff % 60000) / 1000),
+        lewat: false,
+      };
+    };
+    setTimeLeft(calc());
+    const t = setInterval(() => setTimeLeft(calc()), 1000);
+    return () => clearInterval(t);
+  }, [targetDate]);
 
-  const fetchPendaftaran = async () => {
-    try {
-      const res = await fetch(`/api/jamaah/pendaftaran?email=${session?.user?.email}`);
-      const data = await res.json();
+  if (!mounted) return null;
 
-      if (!res.ok) {
-        throw new Error(data.error || "Gagal memuat data");
-      }
-
-      setPendaftaranList(data);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "MENUNGGU": return "yellow";
-      case "TERKONFIRMASI": return "green";
-      case "TIDAK_TERKONFIRMASI": return "red";
-      default: return "gray";
-    }
-  };
-
-  if (loading) {
+  if (timeLeft.lewat) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <Spinner size="xl" />
+      <div className="bg-green-100 border border-green-300 rounded-xl p-4 text-center">
+        <p className="text-green-700 font-bold text-lg">✈️ Sudah Berangkat!</p>
       </div>
     );
   }
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-          <HiCalendar className="text-blue-600" />
-          Jadwal Keberangkatan
-        </h1>
-        <p className="text-gray-600 mt-2">Lihat itinerary lengkap dan jadwal keberangkatan paket umrah</p>
-      </div>
-
-      {error && <Alert color="failure" className="mb-4">{error}</Alert>}
-
-      {pendaftaranList.length === 0 ? (
-        <Card>
-          <div className="text-center py-8">
-            <p className="text-gray-600">Belum ada pemesanan paket</p>
+    <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl p-4 text-white text-center">
+      <p className="text-sm font-medium text-blue-200 mb-3">⏳ Hitung Mundur Keberangkatan</p>
+      <div className="grid grid-cols-4 gap-2">
+        {[
+          { val: timeLeft.hari, label: "Hari" },
+          { val: timeLeft.jam, label: "Jam" },
+          { val: timeLeft.menit, label: "Menit" },
+          { val: timeLeft.detik, label: "Detik" },
+        ].map(({ val, label }) => (
+          <div key={label} className="bg-white/20 rounded-lg p-2">
+            <div className="text-2xl font-bold tabular-nums">{String(val).padStart(2, "0")}</div>
+            <div className="text-xs text-blue-200">{label}</div>
           </div>
-        </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const STATUS_COLOR = {
+  MENUNGGU: "warning",
+  TERKONFIRMASI: "success",
+  TIDAK_TERKONFIRMASI: "failure",
+};
+
+export default function KeberangkatanPage() {
+  const { data: session } = useSession();
+  const router = useRouter();
+  const [pendaftaranList, setPendaftaranList] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const fetchPendaftaran = useCallback(async () => {
+    if (!session?.user?.email) return;
+    try {
+      const res = await fetch(`/api/jamaah/pendaftaran?email=${session.user.email}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal memuat data");
+      setPendaftaranList(data);
+    } catch (err) { setError(err.message); }
+    finally { setLoading(false); }
+  }, [session?.user?.email]);
+
+  useEffect(() => { fetchPendaftaran(); }, [fetchPendaftaran]);
+
+  if (loading) return <div className="flex justify-center py-20"><Spinner size="xl" /></div>;
+
+  // Filter hanya yang aktif (bukan dibatalkan)
+  const aktif = pendaftaranList.filter((p) => p.status !== "TIDAK_TERKONFIRMASI");
+
+  return (
+    <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-6">
+      <h1 className="text-2xl font-bold flex items-center gap-2">
+        <HiCalendar className="text-blue-600" />
+        Jadwal Keberangkatan
+      </h1>
+
+      {error && <Alert color="failure">{error}</Alert>}
+
+      {aktif.length === 0 ? (
+        <div className="bg-white rounded-xl border p-10 text-center">
+          <div className="text-5xl mb-3">✈️</div>
+          <p className="text-gray-500 mb-4">Belum ada paket yang dipesan.</p>
+          <button onClick={() => router.push("/jamaah")}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors">
+            Lihat Paket Umrah
+          </button>
+        </div>
       ) : (
-        <div className="space-y-6">
-          {pendaftaranList.map((pendaftaran) => (
-            <Card key={pendaftaran.id}>
-              {/* Header Paket */}
-              <div className="mb-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-xl font-bold">{pendaftaran.paket.nama}</h3>
-                    <p className="text-gray-600">{pendaftaran.paket.deskripsi}</p>
-                  </div>
-                  <Badge color={getStatusColor(pendaftaran.status)} size="lg">
-                    {pendaftaran.status}
-                  </Badge>
-                </div>
-
-                {/* Informasi Utama */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-                    <HiCalendar className="text-blue-600 text-xl" />
-                    <div>
-                      <p className="text-sm text-gray-600">Tanggal Berangkat</p>
-                      <p className="font-semibold">{formatDate(pendaftaran.paket.tanggalBerangkat, "long")}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
-                    <HiClock className="text-green-600 text-xl" />
-                    <div>
-                      <p className="text-sm text-gray-600">Tanggal Pulang</p>
-                      <p className="font-semibold">{formatDate(pendaftaran.paket.tanggalPulang, "long")}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg">
-                    <HiLocationMarker className="text-purple-600 text-xl" />
-                    <div>
-                      <p className="text-sm text-gray-600">Hotel</p>
-                      <p className="font-semibold">{pendaftaran.paket.hotel?.nama || "TBA"}</p>
-                      {pendaftaran.paket.hotel?.lokasi && (
-                        <p className="text-xs text-purple-600 font-medium mt-0.5">
-                          {pendaftaran.paket.hotel.lokasi}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Detail Penerbangan */}
-                {pendaftaran.paket.penerbangan && (
-                  <div className="p-4 bg-gray-50 rounded-lg mb-4">
-                    <h4 className="font-semibold mb-2 flex items-center gap-2">
-                      <HiUserGroup className="text-gray-600" />
-                      Informasi Penerbangan
-                    </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-gray-600">Maskapai:</span>
-                        <p className="font-medium">{pendaftaran.paket.penerbangan.maskapai || "TBA"}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Bandara Keberangkatan:</span>
-                        <p className="font-medium">{pendaftaran.paket.penerbangan.bandaraBerangkat || "TBA"}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Bandara Tujuan:</span>
-                        <p className="font-medium">{pendaftaran.paket.penerbangan.bandaraTiba || "TBA"}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Waktu Berangkat:</span>
-                        <p className="font-medium">
-                          {pendaftaran.paket.penerbangan.waktuBerangkat
-                            ? new Date(pendaftaran.paket.penerbangan.waktuBerangkat).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })
-                            : "TBA"}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Waktu Tiba:</span>
-                        <p className="font-medium">
-                          {pendaftaran.paket.penerbangan.waktuTiba
-                            ? new Date(pendaftaran.paket.penerbangan.waktuTiba).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })
-                            : "TBA"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
+        aktif.map((pendaftaran) => (
+          <div key={pendaftaran.id} className="bg-white rounded-xl border shadow-sm overflow-hidden">
+            {/* Header */}
+            <div className="p-4 border-b bg-gray-50 flex justify-between items-start">
+              <div>
+                <h3 className="font-bold text-lg">{pendaftaran.paket?.nama}</h3>
+                <p className="text-sm text-gray-500 mt-0.5">{pendaftaran.paket?.deskripsi}</p>
               </div>
+              <Badge color={STATUS_COLOR[pendaftaran.status] ?? "gray"} size="sm">
+                {pendaftaran.status}
+              </Badge>
+            </div>
+
+            <div className="p-4 space-y-4">
+              {/* Countdown */}
+              {pendaftaran.paket?.tanggalBerangkat && (
+                <CountdownTimer targetDate={pendaftaran.paket.tanggalBerangkat} />
+              )}
+
+              {/* Info utama */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+                  <HiCalendar className="text-blue-600 text-xl shrink-0" />
+                  <div>
+                    <p className="text-xs text-gray-500">Tanggal Berangkat</p>
+                    <p className="font-semibold text-sm">{formatDate(pendaftaran.paket?.tanggalBerangkat, "long")}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
+                  <HiClock className="text-green-600 text-xl shrink-0" />
+                  <div>
+                    <p className="text-xs text-gray-500">Tanggal Pulang</p>
+                    <p className="font-semibold text-sm">{formatDate(pendaftaran.paket?.tanggalPulang, "long")}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg">
+                  <HiLocationMarker className="text-purple-600 text-xl shrink-0" />
+                  <div>
+                    <p className="text-xs text-gray-500">Hotel</p>
+                    <p className="font-semibold text-sm">{pendaftaran.paket?.hotel?.nama || "TBA"}</p>
+                    {pendaftaran.paket?.hotel?.lokasi && (
+                      <p className="text-xs text-purple-600">{pendaftaran.paket.hotel.lokasi}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Info penerbangan */}
+              {pendaftaran.paket?.penerbangan && (
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                    <HiUserGroup className="text-gray-600" /> Informasi Penerbangan
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                    {[
+                      { label: "Maskapai", val: pendaftaran.paket.penerbangan.maskapai },
+                      { label: "Bandara Berangkat", val: pendaftaran.paket.penerbangan.bandaraBerangkat },
+                      { label: "Bandara Tujuan", val: pendaftaran.paket.penerbangan.bandaraTiba },
+                      {
+                        label: "Waktu Berangkat",
+                        val: pendaftaran.paket.penerbangan.waktuBerangkat
+                          ? new Date(pendaftaran.paket.penerbangan.waktuBerangkat).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })
+                          : null,
+                      },
+                      {
+                        label: "Waktu Tiba",
+                        val: pendaftaran.paket.penerbangan.waktuTiba
+                          ? new Date(pendaftaran.paket.penerbangan.waktuTiba).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })
+                          : null,
+                      },
+                    ].map(({ label, val }) => (
+                      <div key={label}>
+                        <p className="text-xs text-gray-500">{label}</p>
+                        <p className="font-medium">{val || "TBA"}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Itinerary */}
-              <div className="border-t pt-4">
-                <h4 className="font-semibold mb-4">Itinerary Perjalanan</h4>
-                {pendaftaran.iternary.length === 0 ? (
-                  <div className="text-center py-8 bg-gray-50 rounded-lg">
-                    <p className="text-gray-600">Itinerary belum tersedia</p>
-                    <p className="text-sm text-gray-500 mt-1">Admin akan mengupdate itinerary sesaat sebelum keberangkatan</p>
+              {pendaftaran.iternary?.length > 0 && (
+                <div className="border-t pt-4">
+                  <h4 className="font-semibold text-sm mb-3">📋 Itinerary Perjalanan</h4>
+                  <div className="space-y-2">
+                    {pendaftaran.iternary.sort((a, b) => a.hariKe - b.hariKe).map((item) => (
+                      <div key={item.id} className="flex gap-3 p-3 bg-gray-50 rounded-lg">
+                        <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center shrink-0">
+                          <span className="text-xs font-bold text-blue-700">H-{item.hariKe}</span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">{item.aktivitas}</p>
+                          {item.lokasi && <p className="text-xs text-gray-500 mt-0.5">📍 {item.lokasi}</p>}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ) : (
-                  <Timeline>
-                    {pendaftaran.iternary
-                      .sort((a, b) => a.hariKe - b.hariKe)
-                      .map((item) => (
-                        <Timeline.Item key={item.id}>
-                          <Timeline.Point />
-                          <Timeline.Content>
-                            <Timeline.Time className="text-sm text-gray-600">
-                              Hari ke-{item.hariKe}
-                              {item.waktuMulai && (
-                                <span className="ml-2">
-                                  {new Date(item.waktuMulai).toLocaleTimeString('id-ID', {
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                  })}
-                                  {item.waktuSelesai && (
-                                    <span> - {new Date(item.waktuSelesai).toLocaleTimeString('id-ID', {
-                                      hour: '2-digit',
-                                      minute: '2-digit'
-                                    })}</span>
-                                  )}
-                                </span>
-                              )}
-                            </Timeline.Time>
-                            <Timeline.Title className="text-lg font-semibold">
-                              {item.aktivitas}
-                            </Timeline.Title>
-                            <Timeline.Body>
-                              {item.lokasi && (
-                                <p className="text-sm text-gray-600 mb-1">
-                                  📍 {item.lokasi}
-                                </p>
-                              )}
-                              <p className="text-gray-700">{item.aktivitas}</p>
-                            </Timeline.Body>
-                          </Timeline.Content>
-                        </Timeline.Item>
-                      ))}
-                  </Timeline>
-                )}
-              </div>
-
-              {/* Catatan Penting */}
-              <div className="border-t pt-4 mt-6">
-                <h4 className="font-semibold mb-3 text-orange-600">📌 Catatan Penting</h4>
-                <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                  <ul className="space-y-2 text-sm text-gray-700">
-                    <li>• Pastikan semua dokumen lengkap H-30 sebelum keberangkatan</li>
-                    <li>• Datang ke bandara 3 jam sebelum waktu penerbangan</li>
-                    <li>• Bawa paspor, visa, dan dokumen kesehatan yang diperlukan</li>
-                    <li>• Ikuti instruksi dari tour guide selama perjalanan</li>
-                    <li>• Simpan nomor kontak darurat tour leader</li>
-                  </ul>
                 </div>
+              )}
+
+              {/* Catatan */}
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                <p className="text-xs font-semibold text-orange-700 mb-1">📌 Catatan Penting</p>
+                <ul className="text-xs text-gray-600 space-y-1">
+                  <li>• Pastikan semua dokumen lengkap H-30 sebelum keberangkatan</li>
+                  <li>• Datang ke bandara 3 jam sebelum penerbangan</li>
+                  <li>• Bawa paspor, visa, dan dokumen kesehatan</li>
+                </ul>
               </div>
-            </Card>
-          ))}
-        </div>
+            </div>
+          </div>
+        ))
       )}
     </div>
   );
