@@ -1,410 +1,310 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
-import { Card, Button, Alert, Spinner, Modal, Tabs } from "flowbite-react";
-import { HiUpload, HiEye, HiUser, HiDocumentText, HiStar } from "react-icons/hi";
+import { Button, Badge, Spinner, Modal, Label, TextInput } from "flowbite-react";
+import { HiUpload, HiEye, HiUser, HiDocumentText, HiStar, HiPencil } from "react-icons/hi";
+import { FaStar } from "react-icons/fa";
+import { alertSuccess, alertError } from "@/components/Alert/alert";
 import formatDate from "@/components/Date/formatDate";
 
+const JENIS_DOKUMEN = ["PASPOR", "KTP", "FOTO", "VAKSIN", "VISA"];
+
+const STATUS_COLOR = { MENUNGGU: "warning", DISETUJUI: "success", DITOLAK: "failure" };
+
 export default function ProfilePage() {
-  const { data: session } = useSession();
+  const { data: session, update } = useSession();
+  const [tab, setTab] = useState("profil");
   const [pendaftaranList, setPendaftaranList] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+
+  // Edit profil
+  const [editMode, setEditMode] = useState(false);
+  const [nama, setNama] = useState("");
+  const [telepon, setTelepon] = useState("");
+  const [savingProfil, setSavingProfil] = useState(false);
+
+  // Ganti password
+  const [newPass, setNewPass] = useState("");
+  const [confirmPass, setConfirmPass] = useState("");
+  const [savingPass, setSavingPass] = useState(false);
+
+  // Upload dokumen
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedDokumen, setSelectedDokumen] = useState(null);
-  const [uploading, setUploading] = useState(false);
   const [dokumenFile, setDokumenFile] = useState(null);
-  const [activeTab, setActiveTab] = useState("profile");
-  const [testimoniForm, setTestimoniForm] = useState({
-    rating: 5,
-    pesan: ""
-  });
+  const [uploading, setUploading] = useState(false);
+
+  // Testimoni
   const [showTestimoniModal, setShowTestimoniModal] = useState(false);
+  const [rating, setRating] = useState(5);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [pesan, setPesan] = useState("");
   const [submittingTestimoni, setSubmittingTestimoni] = useState(false);
 
   useEffect(() => {
-    fetchPendaftaran();
-  }, []);
+    if (session?.user) {
+      setNama(session.user.nama || "");
+      setTelepon(session.user.telepon || "");
+    }
+  }, [session]);
 
-  const fetchPendaftaran = async () => {
+  const fetchPendaftaran = useCallback(async () => {
+    if (!session?.user?.email) return;
     try {
-      const res = await fetch(`/api/jamaah/pendaftaran?email=${session?.user?.email}`);
+      const res = await fetch(`/api/jamaah/pendaftaran?email=${session.user.email}`);
       const data = await res.json();
+      if (res.ok) setPendaftaranList(data);
+    } catch {}
+    finally { setLoading(false); }
+  }, [session?.user?.email]);
 
-      if (!res.ok) {
-        throw new Error(data.error || "Gagal memuat data");
-      }
+  useEffect(() => { fetchPendaftaran(); }, [fetchPendaftaran]);
 
-      setPendaftaranList(data);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+  // Simpan profil
+  const handleSaveProfil = async (e) => {
+    e.preventDefault();
+    setSavingProfil(true);
+    try {
+      const res = await fetch(`/api/system/akun?email=${session?.user?.email}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nama, telepon }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal menyimpan");
+      alertSuccess("Profil berhasil diperbarui!");
+      setEditMode(false);
+    } catch (err) { alertError(err.message); }
+    finally { setSavingProfil(false); }
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "MENUNGGU": return "yellow";
-      case "DISETUJUI": return "green";
-      case "DITOLAK": return "red";
-      default: return "gray";
-    }
+  // Ganti password
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    if (newPass !== confirmPass) { alertError("Password tidak cocok"); return; }
+    if (newPass.length < 6) { alertError("Password minimal 6 karakter"); return; }
+    setSavingPass(true);
+    try {
+      const res = await fetch(`/api/system/akun?email=${session?.user?.email}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: newPass }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal ganti password");
+      alertSuccess("Password berhasil diubah!");
+      setNewPass(""); setConfirmPass("");
+    } catch (err) { alertError(err.message); }
+    finally { setSavingPass(false); }
   };
 
-  const openUploadModal = (dokumen) => {
-    setSelectedDokumen(dokumen);
-    setShowUploadModal(true);
-    setDokumenFile(null);
-  };
-
-  const closeUploadModal = () => {
-    setShowUploadModal(false);
-    setSelectedDokumen(null);
-    setDokumenFile(null);
-  };
-
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB
-        setError("Ukuran file maksimal 5MB");
-        return;
-      }
-      setDokumenFile(file);
-    }
-  };
-
+  // Upload dokumen
   const handleUploadDokumen = async () => {
     if (!dokumenFile || !selectedDokumen) return;
-
     setUploading(true);
-    setError("");
-    setSuccess("");
-
     try {
       const formData = new FormData();
-      formData.append('dokumen', dokumenFile);
-      
-      if (selectedDokumen.isNew) {
-        // Untuk dokumen baru
-        formData.append('dokumenId', `${selectedDokumen.jenis}|${selectedDokumen.pendaftaranId}|${selectedDokumen.akunEmail}`);
-      } else {
-        // Untuk update dokumen existing
-        formData.append('dokumenId', selectedDokumen.id);
-      }
-
-      const res = await fetch('/api/jamaah/upload-dokumen', {
-        method: 'POST',
-        body: formData
-      });
-
+      formData.append("dokumen", dokumenFile);
+      formData.append("dokumenId", selectedDokumen.isNew
+        ? `${selectedDokumen.jenis}|${selectedDokumen.pendaftaranId}|${session.user.email}`
+        : selectedDokumen.id
+      );
+      const res = await fetch("/api/jamaah/upload-dokumen", { method: "POST", body: formData });
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Gagal upload dokumen");
-      }
-
-      setSuccess("Dokumen berhasil diupload!");
-      closeUploadModal();
+      if (!res.ok) throw new Error(data.error || "Gagal upload");
+      alertSuccess("Dokumen berhasil diupload!");
+      setShowUploadModal(false);
       fetchPendaftaran();
-
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setUploading(false);
-    }
+    } catch (err) { alertError(err.message); }
+    finally { setUploading(false); }
   };
 
+  // Kirim testimoni
   const handleSubmitTestimoni = async () => {
-    if (!testimoniForm.pesan.trim()) {
-      setError("Pesan testimoni tidak boleh kosong");
-      return;
-    }
-
+    if (!pesan.trim() || pesan.trim().length < 10) { alertError("Pesan minimal 10 karakter"); return; }
     setSubmittingTestimoni(true);
-    setError("");
-    setSuccess("");
-
     try {
-      const res = await fetch('/api/jamaah/testimoni', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          akunEmail: session.user.email,
-          ...testimoniForm
-        })
+      const res = await fetch("/api/jamaah/testimoni", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ akunEmail: session.user.email, rating, pesan: pesan.trim() }),
       });
-
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Gagal mengirim testimoni");
-      }
-
-      setSuccess("Testimoni berhasil dikirim!");
+      if (!res.ok) throw new Error(data.error || "Gagal mengirim");
+      alertSuccess("Testimoni berhasil dikirimkan!");
       setShowTestimoniModal(false);
-      setTestimoniForm({ rating: 5, pesan: "" });
-
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setSubmittingTestimoni(false);
-    }
+      setRating(5); setPesan("");
+    } catch (err) { alertError(err.message); }
+    finally { setSubmittingTestimoni(false); }
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <Spinner size="xl" />
-      </div>
-    );
-  }
+  const TABS = [
+    { id: "profil", label: "Data Pribadi", icon: <HiUser /> },
+    { id: "dokumen", label: "Dokumen", icon: <HiDocumentText /> },
+    { id: "testimoni", label: "Testimoni", icon: <HiStar /> },
+  ];
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">Profile Saya</h1>
-        <p className="text-gray-600 mt-2">Kelola data pribadi dan dokumen persyaratan</p>
+    <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-4">
+      <h1 className="text-2xl font-bold">Profile Saya</h1>
+
+      {/* Tab buttons */}
+      <div className="flex gap-2 border-b">
+        {TABS.map((t) => (
+          <button key={t.id} onClick={() => setTab(t.id)}
+            className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === t.id ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}>
+            {t.icon} {t.label}
+          </button>
+        ))}
       </div>
 
-      {error && <Alert color="failure" className="mb-4">{error}</Alert>}
-      {success && <Alert color="success" className="mb-4">{success}</Alert>}
-
-      <Tabs.Group onActiveTabChange={setActiveTab}>
-        <Tabs.Item active={activeTab === "profile"} title="Data Pribadi" icon={HiUser}>
-          <Card>
-            <div className="space-y-4">
-              <h3 className="text-xl font-semibold mb-4">Informasi Akun</h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap</label>
-                  <input
-                    type="text"
-                    value={session?.user?.nama || ""}
-                    disabled
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                  <input
-                    type="email"
-                    value={session?.user?.email || ""}
-                    disabled
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Jenis Kelamin</label>
-                  <input
-                    type="text"
-                    value={session?.user?.jenisKelamin === "LAKI_LAKI" ? "Laki-laki" : "Perempuan" || ""}
-                    disabled
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Telepon</label>
-                  <input
-                    type="tel"
-                    value={session?.user?.telepon || ""}
-                    disabled
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-4">
-                <Button color="blue">
-                  Edit Profile
-                </Button>
-              </div>
+      {/* TAB: Data Pribadi */}
+      {tab === "profil" && (
+        <div className="bg-white rounded-xl border p-6 space-y-6">
+          {/* Avatar */}
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center border-2 border-blue-200">
+              <HiUser className="text-blue-400 w-8 h-8" />
             </div>
-          </Card>
-        </Tabs.Item>
-
-        <Tabs.Item active={activeTab === "dokumen"} title="Dokumen" icon={HiDocumentText}>
-          {pendaftaranList.length === 0 ? (
-            <Card>
-              <div className="text-center py-8">
-                <p className="text-gray-600">Belum ada pemesanan paket</p>
-              </div>
-            </Card>
-          ) : (
-            <div className="space-y-6">
-              {pendaftaranList.map((pendaftaran) => (
-                <Card key={pendaftaran.id}>
-                  <div className="mb-4">
-                    <h3 className="text-lg font-semibold">{pendaftaran.paket.nama}</h3>
-                    <p className="text-gray-600 text-sm">Upload dokumen persyaratan</p>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {["PASPOR", "KTP", "FOTO", "VAKSIN", "VISA"].map((jenisDokumen) => {
-                      const dokumen = pendaftaran.dokumen.find(d => d.jenis === jenisDokumen);
-                      
-                      return (
-                        <div key={jenisDokumen} className="border rounded-lg p-4">
-                          <div className="flex justify-between items-center mb-2">
-                            <h4 className="font-medium">{jenisDokumen}</h4>
-                            {dokumen && (
-                              <Badge color={getStatusColor(dokumen.status)} size="sm">
-                                {dokumen.status}
-                              </Badge>
-                            )}
-                          </div>
-                          
-                          {dokumen ? (
-                            <div className="space-y-2">
-                              <p className="text-sm text-gray-600">
-                                Upload: {formatDate(dokumen.created, "short")}
-                              </p>
-                              {dokumen.url && (
-                                <Button
-                                  size="xs"
-                                  color="light"
-                                  onClick={() => window.open(dokumen.url, '_blank')}
-                                >
-                                  <HiEye className="mr-1" />
-                                  Lihat
-                                </Button>
-                              )}
-                              {dokumen.status === "MENUNGGU" && (
-                                <Button
-                                  size="xs"
-                                  color="blue"
-                                  onClick={() => openUploadModal(dokumen)}
-                                >
-                                  <HiUpload className="mr-1" />
-                                  Ganti
-                                </Button>
-                              )}
-                            </div>
-                          ) : (
-                            <Button
-                              size="sm"
-                              color="blue"
-                              onClick={() => openUploadModal({ 
-                                jenis: jenisDokumen, 
-                                pendaftaranId: pendaftaran.id,
-                                akunEmail: session.user.email,
-                                isNew: true
-                              })}
-                            >
-                              <HiUpload className="mr-1" />
-                              Upload
-                            </Button>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                    <h4 className="font-medium text-blue-900 mb-2">📋 Panduan Upload Dokumen:</h4>
-                    <ul className="text-sm text-blue-800 space-y-1">
-                      <li>• Paspor: Masih berlaku minimal 6 bulan</li>
-                      <li>• KTP: Foto jelas, semua informasi terbaca</li>
-                      <li>• Foto: Background putih, wajah jelas</li>
-                      <li>• Vaksin: Sertifikat vaksin terakhir</li>
-                      <li>• Visa: Jika sudah ada</li>
-                    </ul>
-                  </div>
-                </Card>
-              ))}
+            <div>
+              <p className="font-bold text-lg">{session?.user?.nama || "-"}</p>
+              <p className="text-sm text-gray-500">{session?.user?.email}</p>
+              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Jamaah</span>
             </div>
-          )}
-        </Tabs.Item>
+          </div>
 
-        <Tabs.Item active={activeTab === "testimoni"} title="Testimoni" icon={HiStar}>
-          <Card>
-            <div className="text-center py-8">
-              <HiStar className="text-6xl text-yellow-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2">Bagikan Pengalaman Anda</h3>
-              <p className="text-gray-600 mb-4">
-                Ceritakan pengalaman ibadah umrah Anda dan bantu jamaah lain
-              </p>
-              <Button 
-                color="blue"
-                onClick={() => setShowTestimoniModal(true)}
-              >
-                Tulis Testimoni
-              </Button>
-            </div>
-          </Card>
-        </Tabs.Item>
-      </Tabs.Group>
-
-      {/* Modal Upload Dokumen */}
-      <Modal show={showUploadModal} onClose={closeUploadModal}>
-        <Modal.Header>
-          Upload Dokumen {selectedDokumen?.jenis}
-        </Modal.Header>
-        <Modal.Body>
-          {selectedDokumen && (
-            <div className="space-y-4">
+          {/* Form edit profil */}
+          <form onSubmit={handleSaveProfil} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Pilih File {selectedDokumen.jenis}
-                </label>
-                <input
-                  type="file"
-                  accept={selectedDokumen.jenis === "FOTO" ? "image/*" : "image/*,.pdf"}
-                  onChange={handleFileChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Format: JPG, PNG, PDF (maksimal 5MB)
-                </p>
+                <Label value="Nama Lengkap" />
+                <TextInput value={nama} onChange={(e) => setNama(e.target.value)} disabled={!editMode} className="mt-1" required />
               </div>
-
-              {dokumenFile && (
-                <div>
-                  <p className="text-sm font-medium mb-2">Preview:</p>
-                  {dokumenFile.type.startsWith('image/') ? (
-                    <img
-                      src={URL.createObjectURL(dokumenFile)}
-                      alt="Preview"
-                      className="w-full h-48 object-cover rounded-lg"
-                    />
-                  ) : (
-                    <div className="p-4 bg-gray-100 rounded-lg text-center">
-                      <p className="text-sm text-gray-600">{dokumenFile.name}</p>
-                      <p className="text-xs text-gray-500">
-                        {(dokumenFile.size / 1024 / 1024).toFixed(2)} MB
-                      </p>
-                    </div>
-                  )}
-                </div>
+              <div>
+                <Label value="Email" />
+                <TextInput value={session?.user?.email || ""} disabled className="mt-1 bg-gray-50" />
+              </div>
+              <div>
+                <Label value="Nomor Telepon" />
+                <TextInput value={telepon} onChange={(e) => setTelepon(e.target.value)} disabled={!editMode} className="mt-1" placeholder="08xxxxxxxxxx" />
+              </div>
+              <div>
+                <Label value="Jenis Kelamin" />
+                <TextInput value={session?.user?.jenisKelamin === "LAKI_LAKI" ? "Laki-laki" : "Perempuan"} disabled className="mt-1 bg-gray-50" />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              {!editMode ? (
+                <Button type="button" color="blue" onClick={() => setEditMode(true)}>
+                  <HiPencil className="mr-1" /> Edit Profil
+                </Button>
+              ) : (
+                <>
+                  <Button type="submit" color="blue" disabled={savingProfil}>
+                    {savingProfil ? <Spinner size="sm" /> : "Simpan"}
+                  </Button>
+                  <Button type="button" color="gray" onClick={() => { setEditMode(false); setNama(session?.user?.nama || ""); setTelepon(session?.user?.telepon || ""); }}>
+                    Batal
+                  </Button>
+                </>
               )}
             </div>
+          </form>
+
+          {/* Ganti password */}
+          <div className="border-t pt-4">
+            <h3 className="font-semibold mb-3">Ganti Password</h3>
+            <form onSubmit={handleChangePassword} className="space-y-3 max-w-sm">
+              <div>
+                <Label value="Password Baru" />
+                <TextInput type="password" value={newPass} onChange={(e) => setNewPass(e.target.value)} required className="mt-1" />
+              </div>
+              <div>
+                <Label value="Konfirmasi Password" />
+                <TextInput type="password" value={confirmPass} onChange={(e) => setConfirmPass(e.target.value)} required className="mt-1" />
+              </div>
+              <Button type="submit" color="blue" disabled={savingPass}>
+                {savingPass ? <Spinner size="sm" /> : "Ganti Password"}
+              </Button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* TAB: Dokumen */}
+      {tab === "dokumen" && (
+        <div className="space-y-4">
+          {loading ? (
+            <div className="flex justify-center py-10"><Spinner size="xl" /></div>
+          ) : pendaftaranList.length === 0 ? (
+            <div className="bg-white rounded-xl border p-8 text-center text-gray-400">
+              Belum ada pemesanan paket. Pesan paket terlebih dahulu untuk upload dokumen.
+            </div>
+          ) : (
+            pendaftaranList.map((pendaftaran) => (
+              <div key={pendaftaran.id} className="bg-white rounded-xl border p-5">
+                <h3 className="font-bold mb-1">{pendaftaran.paket?.nama}</h3>
+                <p className="text-xs text-gray-400 mb-4">Upload dokumen persyaratan umrah</p>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                  {JENIS_DOKUMEN.map((jenis) => {
+                    const dok = pendaftaran.dokumen?.find((d) => d.jenis === jenis);
+                    return (
+                      <div key={jenis} className="border rounded-lg p-3 text-center">
+                        <p className="font-semibold text-sm mb-2">{jenis}</p>
+                        {dok ? (
+                          <div className="space-y-1">
+                            <Badge color={STATUS_COLOR[dok.status] ?? "gray"} size="xs" className="mx-auto">{dok.status}</Badge>
+                            <div className="flex gap-1 justify-center mt-2">
+                              {dok.url && (
+                                <Button size="xs" color="light" onClick={() => window.open(dok.url, "_blank")}><HiEye size={12} /></Button>
+                              )}
+                              <Button size="xs" color="blue" onClick={() => { setSelectedDokumen(dok); setDokumenFile(null); setShowUploadModal(true); }}>
+                                <HiUpload size={12} />
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <Button size="xs" color="blue" className="w-full mt-2" onClick={() => { setSelectedDokumen({ jenis, pendaftaranId: pendaftaran.id, isNew: true }); setDokumenFile(null); setShowUploadModal(true); }}>
+                            <HiUpload size={12} className="mr-1" /> Upload
+                          </Button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))
           )}
+        </div>
+      )}
+
+      {/* TAB: Testimoni */}
+      {tab === "testimoni" && (
+        <div className="bg-white rounded-xl border p-8 text-center">
+          <div className="text-5xl mb-3">⭐</div>
+          <h3 className="text-xl font-semibold mb-2">Bagikan Pengalaman Anda</h3>
+          <p className="text-gray-500 text-sm mb-6">Ceritakan pengalaman ibadah umrah Anda dan bantu jamaah lain</p>
+          <Button color="blue" onClick={() => setShowTestimoniModal(true)}>Tulis Testimoni</Button>
+        </div>
+      )}
+
+      {/* Modal Upload Dokumen */}
+      <Modal show={showUploadModal} onClose={() => setShowUploadModal(false)}>
+        <Modal.Header>Upload Dokumen {selectedDokumen?.jenis}</Modal.Header>
+        <Modal.Body>
+          <div className="space-y-3">
+            <input type="file" accept="image/*,.pdf" onChange={(e) => setDokumenFile(e.target.files[0])} className="w-full border border-gray-300 rounded p-2 text-sm" />
+            <p className="text-xs text-gray-400">Format: JPG, PNG, PDF — maks. 5MB</p>
+            {dokumenFile && dokumenFile.type.startsWith("image/") && (
+              <img src={URL.createObjectURL(dokumenFile)} alt="preview" className="w-full h-40 object-cover rounded" />
+            )}
+          </div>
         </Modal.Body>
         <Modal.Footer>
-          <Button
-            color="gray"
-            onClick={closeUploadModal}
-            disabled={uploading}
-          >
-            Batal
-          </Button>
-          <Button
-            color="blue"
-            onClick={handleUploadDokumen}
-            disabled={!dokumenFile || uploading}
-          >
-            {uploading ? (
-              <>
-                <Spinner size="sm" className="mr-2" />
-                Mengupload...
-              </>
-            ) : (
-              "Upload Dokumen"
-            )}
+          <Button color="gray" onClick={() => setShowUploadModal(false)} disabled={uploading}>Batal</Button>
+          <Button color="blue" onClick={handleUploadDokumen} disabled={!dokumenFile || uploading}>
+            {uploading ? <Spinner size="sm" /> : "Upload"}
           </Button>
         </Modal.Footer>
       </Modal>
@@ -415,60 +315,26 @@ export default function ProfilePage() {
         <Modal.Body>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Rating
-              </label>
-              <div className="flex gap-2">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    type="button"
-                    onClick={() => setTestimoniForm(prev => ({ ...prev, rating: star }))}
-                    className="text-3xl focus:outline-none"
-                  >
-                    <span className={star <= testimoniForm.rating ? "text-yellow-400" : "text-gray-300"}>
-                      ★
-                    </span>
+              <Label value="Rating" />
+              <div className="flex gap-1 mt-2">
+                {[1,2,3,4,5].map((s) => (
+                  <button key={s} type="button" onClick={() => setRating(s)} onMouseEnter={() => setHoverRating(s)} onMouseLeave={() => setHoverRating(0)}>
+                    <FaStar size={28} className={s <= (hoverRating || rating) ? "text-yellow-400" : "text-gray-300"} />
                   </button>
                 ))}
               </div>
             </div>
-            
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Pesan Testimoni
-              </label>
-              <textarea
-                rows={4}
-                value={testimoniForm.pesan}
-                onChange={(e) => setTestimoniForm(prev => ({ ...prev, pesan: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Bagikan pengalaman ibadah umrah Anda..."
-              />
+              <Label value="Pesan Testimoni" />
+              <textarea rows={4} value={pesan} onChange={(e) => setPesan(e.target.value)} placeholder="Ceritakan pengalaman ibadah umrah Anda..." className="w-full mt-1 px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 resize-none" />
+              <p className="text-xs text-gray-400 mt-1">{pesan.length} karakter (min. 10)</p>
             </div>
           </div>
         </Modal.Body>
         <Modal.Footer>
-          <Button
-            color="gray"
-            onClick={() => setShowTestimoniModal(false)}
-            disabled={submittingTestimoni}
-          >
-            Batal
-          </Button>
-          <Button
-            color="blue"
-            onClick={handleSubmitTestimoni}
-            disabled={submittingTestimoni}
-          >
-            {submittingTestimoni ? (
-              <>
-                <Spinner size="sm" className="mr-2" />
-                Mengirim...
-              </>
-            ) : (
-              "Kirim Testimoni"
-            )}
+          <Button color="gray" onClick={() => setShowTestimoniModal(false)} disabled={submittingTestimoni}>Batal</Button>
+          <Button color="blue" onClick={handleSubmitTestimoni} disabled={submittingTestimoni}>
+            {submittingTestimoni ? <Spinner size="sm" /> : "Kirim Testimoni"}
           </Button>
         </Modal.Footer>
       </Modal>

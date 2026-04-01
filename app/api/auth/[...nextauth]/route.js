@@ -58,11 +58,14 @@ export const authOptions = {
 
         // Kembalikan data user ke NextAuth
         return {
-          id: user.email, // karena email jadi primary key
-          name: user.nama,
+          id: user.email,
+          name: user.nama,  // NextAuth standard field
+          nama: user.nama,  // custom field
           email: user.email,
           image: user.gambar,
+          gambar: user.gambar,
           role: user.role,
+          telepon: user.telepon,
           sessionToken,
         };
       },
@@ -74,11 +77,12 @@ export const authOptions = {
       // Saat login
       if (user) {
         token.id = user.id;
-        token.nama = user.nama;
+        token.nama = user.name || user.nama; // NextAuth set name, kita juga cek nama
         token.email = user.email;
-        token.gambar = user.gambar;
+        token.gambar = user.image || user.gambar;
         token.role = user.role;
         token.sessionToken = user.sessionToken;
+        token.telepon = user.telepon;
       }
       return token;
     },
@@ -92,6 +96,7 @@ export const authOptions = {
         session.user.gambar = token.gambar;
         session.user.role = token.role;
         session.user.sessionToken = token.sessionToken;
+        session.user.telepon = token.telepon;
       }
       return session;
     },

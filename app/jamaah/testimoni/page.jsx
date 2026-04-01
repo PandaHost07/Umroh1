@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { FaStar } from "react-icons/fa";
 import { Button, Spinner } from "flowbite-react";
+import { alertSuccess, alertError } from "@/components/Alert/alert";
 
 export default function TestimoniPage() {
   const { data: session } = useSession();
@@ -40,10 +41,11 @@ export default function TestimoniPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Gagal mengirim testimoni");
-      setSuccess("Testimoni berhasil dikirim. Terima kasih!");
+      alertSuccess("Testimoni berhasil dikirimkan. Terima kasih!");
       setRating(0);
       setPesan("");
     } catch (err) {
+      alertError(err.message);
       setError(err.message);
     } finally {
       setLoading(false);

@@ -5,6 +5,8 @@ import { Table, Spinner, Alert, Button } from "flowbite-react";
 import AdminContainer from "@/components/Container/adminContainer";
 import { useRouter } from "next/navigation";
 import { TableComponent } from "@/components/Table/table";
+import { alertSuccess, alertError } from "@/components/Alert/alert";
+import Swal from "sweetalert2";
 
 export default function PaketList() {
   const [pakets, setPakets] = useState([]);
@@ -78,13 +80,24 @@ export default function PaketList() {
         data={pakets} 
         editFunct={(item) => router.push(`/ADMIN_OPERASIONAL/daftar-paket/edit/${item.id}`)}
         delFunct={async (item) => {
-          if (!confirm(`Hapus paket "${item.nama}"?`)) return;
+          const result = await Swal.fire({
+            title: "Hapus Paket?",
+            text: `Paket "${item.nama}" akan dihapus permanen.`,
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#d33",
+            cancelButtonColor: "#6b7280",
+            confirmButtonText: "Ya, Hapus",
+            cancelButtonText: "Batal",
+          });
+          if (!result.isConfirmed) return;
           try {
             const res = await fetch(`/api/system/delete?model=paket&id=${item.id}`, { method: "DELETE" });
             if (!res.ok) throw new Error("Gagal menghapus paket");
+            alertSuccess("Paket berhasil dihapus");
             fetchPakets();
           } catch (err) {
-            alert(err.message);
+            alertError(err.message);
           }
         }}
       />

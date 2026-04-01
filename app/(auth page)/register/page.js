@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Button, Label, TextInput, Select, Spinner } from "flowbite-react";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import LoginImage from "../../../public/login.png";
+import { alertSuccess, alertError } from "@/components/Alert/alert";
 
 export default function Register() {
   const [form, setForm] = useState({
@@ -43,9 +44,12 @@ export default function Register() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Terjadi kesalahan");
-      alert("Registrasi berhasil! Silakan login.");
+      alertSuccess("Registrasi berhasil! Silakan login.");
       setForm({ nama: "", email: "", password: "", confirmPassword: "", jenisKelamin: "", telepon: "" });
+      // Redirect ke login setelah 1.5 detik
+      setTimeout(() => { window.location.href = "/login"; }, 1500);
     } catch (error) {
+      alertError(error.message);
       setErrorMsg(error.message);
     } finally {
       setLoading(false);
