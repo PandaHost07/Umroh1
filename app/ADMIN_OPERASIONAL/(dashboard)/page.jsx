@@ -1,7 +1,7 @@
 "use client";
 import AdminContainer from "@/components/Container/adminContainer";
 import { Card } from "flowbite-react";
-import { FaUserFriends, FaClipboardCheck, FaRegCalendarAlt, FaSuitcase } from "react-icons/fa";
+import { FaUserFriends, FaRegCalendarAlt, FaSuitcase } from "react-icons/fa";
 import { useEffect, useState } from "react";
 import formatDate from "@/components/Date/formatDate";
 

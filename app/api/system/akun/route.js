@@ -25,7 +25,6 @@ export async function GET(req) {
     const safeUsers = users.map(sanitizeUser);
     return new Response(JSON.stringify(safeUsers), { status: 200 });
   } catch (error) {
-    console.error(error);
     return new Response(JSON.stringify({ error: "Gagal mengambil user" }), { status: 500 });
   }
 }
@@ -34,9 +33,9 @@ export async function GET(req) {
 export async function POST(req) {
   try {
     const body = await req.json();
-    const { name, email, password, jenisKelamin, Role, telepon } = body;
+    const { nama, email, password, jenisKelamin, role, telepon } = body;
 
-    if (!name || !email || !password || !jenisKelamin || !Role) {
+    if (!nama || !email || !password || !jenisKelamin || !role) {
       return new Response(JSON.stringify({ error: "Field wajib diisi" }), { status: 400 });
     }
 
@@ -48,20 +47,12 @@ export async function POST(req) {
     const hashedPassword = await hash(password, 10);
 
     const newUser = await prisma.akun.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-        jenisKelamin,
-        Role,
-        telepon,
-      },
+      data: { nama, email, password: hashedPassword, jenisKelamin, role, telepon },
       include: { profil: true },
     });
 
     return new Response(JSON.stringify(sanitizeUser(newUser)), { status: 201 });
   } catch (error) {
-    console.error(error);
     return new Response(JSON.stringify({ error: "Gagal membuat user" }), { status: 500 });
   }
 }
@@ -89,7 +80,6 @@ export async function PATCH(req) {
 
     return new Response(JSON.stringify(sanitizeUser(updatedUser)), { status: 200 });
   } catch (error) {
-    console.error(error);
     return new Response(JSON.stringify({ error: "Gagal update user" }), { status: 500 });
   }
 }
@@ -107,7 +97,6 @@ export async function DELETE(req) {
 
     return new Response(null, { status: 204 });
   } catch (error) {
-    console.error(error);
     return new Response(JSON.stringify({ error: "Gagal menghapus user" }), { status: 500 });
   }
 }

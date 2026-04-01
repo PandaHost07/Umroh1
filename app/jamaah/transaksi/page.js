@@ -2,26 +2,27 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
-import { Badge, Button, Modal, Spinner } from "flowbite-react";
+import { Badge, Button, Spinner } from "flowbite-react";
 import formatDate from "@/components/Date/formatDate";
-import { HiTrash } from "react-icons/hi";
+import formatCurrency from "@/components/Currency/currency";
+import { HiCash } from "react-icons/hi";
+import { alertSuccess, alertError } from "@/components/Alert/alert";
+import Swal from "sweetalert2";
+import { useRouter } from "next/navigation";
 
 const STATUS_COLOR = {
   MENUNGGU: "warning",
   TERKONFIRMASI: "success",
   TIDAK_TERKONFIRMASI: "failure",
-  DIBATALKAN: "gray",
 };
 
 export default function TransaksiPage() {
   const { data: session } = useSession();
+  const router = useRouter();
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [showModal, setShowModal] = useState(false);
-  const [selected, setSelected] = useState(null);
-  const [cancelling, setCancelling] = useState(false);
-  const [cancelReason, setCancelReason] = useState("");
+  const [cancelling, setCancelling] = useState(null);
 
   const fetchData = useCallback(async () => {
     if (!session?.user?.email) return;
@@ -37,108 +38,105 @@ export default function TransaksiPage() {
     }
   }, [session?.user?.email]);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
-  const openCancel = (item) => {
-    setSelected(item);
-    setCancelReason("");
-    setShowModal(true);
-  };
+  const handleCancel = async (item) => {
+    const hasVerified = item.pembayaran?.some((p) => p.status === "TERVERIFIKASI");
+    if (hasVerified) {
+      alertError("Tidak bisa dibatalkan karena sudah ada pembayaran yang terverifikasi.");
+      return;
+    }
 
-  const handleCancel = async () => {
-    if (!selected) return;
-    setCancelling(true);
+    const result = await Swal.fire({
+      title: "Batalkan Pesanan?",
+      text: `Batalkan pesanan paket "${item.paket?.nama}"? Tindakan ini tidak bisa dibatalkan.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Ya, Batalkan",
+      cancelButtonText: "Tidak",
+    });
+    if (!result.isConfirmed) return;
+
+    setCancelling(item.id);
     try {
       const res = await fetch("/api/jamaah/cancel", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pendaftaranId: selected.id, alasan: cancelReason }),
+        body: JSON.stringify({ pendaftaranId: item.id }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Gagal membatalkan");
-      setShowModal(false);
+      alertSuccess("Pesanan berhasil dibatalkan.");
       fetchData();
     } catch (err) {
-      setError(err.message);
+      alertError(err.message);
     } finally {
-      setCancelling(false);
+      setCancelling(null);
     }
   };
 
   const canCancel = (item) =>
-    item.status !== "DIBATALKAN" &&
-    (item.pembayaran?.filter((p) => p.status === "TERVERIFIKASI") || []).length === 0;
+    item.status === "MENUNGGU" &&
+    !item.pembayaran?.some((p) => p.status === "TERVERIFIKASI");
 
   return (
     <div>
       <h1 className="text-2xl font-bold mb-6 uppercase tracking-wide">Transaksi</h1>
 
       {error && (
-        <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded p-3">
-          {error}
-        </div>
+        <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded p-3">{error}</div>
       )}
 
       <div className="overflow-x-auto border border-gray-300 rounded">
         <table className="w-full text-sm text-left">
           <thead className="bg-white border-b border-gray-300">
             <tr>
-              {["No", "Email", "Nama", "Tgl Pesanan", "Paket", "Status", "Aksi"].map((h) => (
-                <th key={h} className="px-4 py-3 font-semibold text-gray-700 border-r border-gray-200 last:border-r-0">
-                  {h}
-                </th>
+              {["No", "Paket", "Tgl Pesanan", "Harga", "Status", "Aksi"].map((h) => (
+                <th key={h} className="px-4 py-3 font-semibold text-gray-700 border-r border-gray-200 last:border-r-0">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr>
-                <td colSpan={7} className="text-center py-10">
-                  <Spinner size="md" />
-                </td>
-              </tr>
+              <tr><td colSpan={6} className="text-center py-10"><Spinner size="md" /></td></tr>
             ) : list.length === 0 ? (
               <tr>
-                <td colSpan={7} className="text-center py-10 text-gray-400">
-                  Belum ada transaksi.
+                <td colSpan={6} className="text-center py-10 text-gray-400">
+                  Belum ada transaksi.{" "}
+                  <button onClick={() => router.push("/jamaah")} className="text-blue-600 underline">Pesan paket sekarang</button>
                 </td>
               </tr>
             ) : (
               list.map((item, i) => (
                 <tr key={item.id} className="border-b border-gray-200 hover:bg-gray-50">
                   <td className="px-4 py-3 border-r border-gray-200 text-center">{i + 1}</td>
-                  <td className="px-4 py-3 border-r border-gray-200">{item.akunEmail}</td>
-                  <td className="px-4 py-3 border-r border-gray-200">{item.akun?.nama ?? "-"}</td>
                   <td className="px-4 py-3 border-r border-gray-200">
-                    {formatDate(item.created, "short")}
+                    <div className="font-medium line-clamp-2">{item.paket?.nama ?? "-"}</div>
+                    <div className="text-xs text-gray-400 mt-0.5">
+                      Berangkat: {item.paket?.tanggalBerangkat ? formatDate(item.paket.tanggalBerangkat, "short") : "-"}
+                    </div>
                   </td>
-                  <td className="px-4 py-3 border-r border-gray-200 max-w-[180px]">
-                    <span className="line-clamp-2">{item.paket?.nama ?? "-"}</span>
+                  <td className="px-4 py-3 border-r border-gray-200">{formatDate(item.created, "short")}</td>
+                  <td className="px-4 py-3 border-r border-gray-200 font-medium">
+                    {item.paket?.harga ? formatCurrency(item.paket.harga) : "-"}
                   </td>
                   <td className="px-4 py-3 border-r border-gray-200">
-                    <Badge color={STATUS_COLOR[item.status] ?? "gray"} size="sm">
-                      {item.status}
-                    </Badge>
+                    <Badge color={STATUS_COLOR[item.status] ?? "gray"} size="sm">{item.status}</Badge>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-2 flex-wrap">
-                      <Button
-                        size="xs"
-                        color="blue"
-                        href={`/jamaah/transaksi/${item.id}`}
-                      >
-                        Detail
-                      </Button>
+                      {/* Tombol Bayar — langsung ke halaman pembayaran */}
+                      {item.status !== "TIDAK_TERKONFIRMASI" && (
+                        <Button size="xs" color="blue" onClick={() => router.push("/jamaah/pembayaran")}>
+                          <HiCash size={12} className="mr-1" /> Pembayaran
+                        </Button>
+                      )}
                       {canCancel(item) && (
-                        <Button
-                          size="xs"
-                          color="failure"
-                          onClick={() => openCancel(item)}
-                        >
-                          <HiTrash size={12} className="mr-1" />
-                          Batal
+                        <Button size="xs" color="failure" disabled={cancelling === item.id}
+                          onClick={() => handleCancel(item)}>
+                          {cancelling === item.id ? <Spinner size="sm" /> : "Batalkan"}
                         </Button>
                       )}
                     </div>
@@ -149,36 +147,6 @@ export default function TransaksiPage() {
           </tbody>
         </table>
       </div>
-
-      {/* Modal Batalkan */}
-      <Modal show={showModal} onClose={() => setShowModal(false)} size="md">
-        <Modal.Header>Batalkan Pemesanan</Modal.Header>
-        <Modal.Body>
-          {selected && (
-            <div className="space-y-4">
-              <p className="text-sm text-gray-700">
-                Batalkan pemesanan paket{" "}
-                <span className="font-semibold">{selected.paket?.nama}</span>?
-              </p>
-              <textarea
-                rows={3}
-                value={cancelReason}
-                onChange={(e) => setCancelReason(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
-                placeholder="Alasan pembatalan (opsional)..."
-              />
-            </div>
-          )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button color="gray" onClick={() => setShowModal(false)} disabled={cancelling}>
-            Tutup
-          </Button>
-          <Button color="failure" onClick={handleCancel} disabled={cancelling}>
-            {cancelling ? <Spinner size="sm" /> : "Ya, Batalkan"}
-          </Button>
-        </Modal.Footer>
-      </Modal>
     </div>
   );
 }

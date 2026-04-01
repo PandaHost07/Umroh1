@@ -4,6 +4,8 @@ import AdminContainer from "@/components/Container/adminContainer";
 import { TableComponent } from "@/components/Table/table";
 import { Button, Modal, Label, TextInput } from "flowbite-react";
 import { FaPlus } from "react-icons/fa";
+import { alertSuccess, alertError } from "@/components/Alert/alert";
+import Swal from "sweetalert2";
 
 export default function KelolaMitra() {
   const [data, setData] = useState(null);
@@ -11,34 +13,22 @@ export default function KelolaMitra() {
   const [formData, setFormData] = useState({ id: "", nama: "", telepon: "", alamat: "", layanan: "" });
   const [isEdit, setIsEdit] = useState(false);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
   const fetchData = async () => {
     try {
       const res = await fetch("/api/system/mitra");
       const json = await res.json();
       if (json.success) {
-        // format data untuk table
-        const formatted = json.mitra.map((m, i) => ({
-          no: i + 1,
-          id: m.id,
-          nama: m.nama,
-          telepon: m.telepon || "-",
-          alamat: m.alamat || "-",
-          layanan: m.layanan || "-",
-        }));
-        setData(formatted);
+        setData(json.mitra.map((m, i) => ({
+          no: i + 1, id: m.id, nama: m.nama,
+          telepon: m.telepon || "-", alamat: m.alamat || "-", layanan: m.layanan || "-",
+        })));
       }
-    } catch (error) {
-      console.error(error);
-    }
+    } catch { alertError("Gagal memuat data mitra"); }
   };
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -49,34 +39,35 @@ export default function KelolaMitra() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
-      if (res.ok) {
-        setOpenModal(false);
-        fetchData();
-      } else {
-        alert("Gagal menyimpan Mitra");
-      }
-    } catch (err) {
-      console.error(err);
-    }
+      if (!res.ok) throw new Error("Gagal menyimpan mitra");
+      alertSuccess(isEdit ? "Mitra berhasil diperbarui" : "Mitra berhasil ditambahkan");
+      setOpenModal(false);
+      fetchData();
+    } catch (err) { alertError(err.message); }
   };
 
   const handleDelete = async (item) => {
-    if (confirm(`Yakin ingin menghapus ${item.nama}?`)) {
-      try {
-        const res = await fetch(`/api/system/mitra?id=${item.id}`, { method: "DELETE" });
-        if (res.ok) {
-          fetchData();
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    }
+    const result = await Swal.fire({
+      title: "Hapus Mitra?",
+      text: `Hapus mitra "${item.nama}"?`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Ya, Hapus",
+      cancelButtonText: "Batal",
+    });
+    if (!result.isConfirmed) return;
+    try {
+      const res = await fetch(`/api/system/mitra?id=${item.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Gagal menghapus mitra");
+      alertSuccess("Mitra berhasil dihapus");
+      fetchData();
+    } catch (err) { alertError(err.message); }
   };
 
   const handleEdit = (item) => {
-    setFormData({
-      id: item.id,
-      nama: item.nama,
+    setFormData({ id: item.id, nama: item.nama,
       telepon: item.telepon !== "-" ? item.telepon : "",
       alamat: item.alamat !== "-" ? item.alamat : "",
       layanan: item.layanan !== "-" ? item.layanan : "",
@@ -101,12 +92,7 @@ export default function KelolaMitra() {
       </div>
 
       {data && (
-        <TableComponent
-          data={data}
-          searchColumn="nama"
-          editFunct={handleEdit}
-          delFunct={handleDelete}
-        />
+        <TableComponent data={data} searchColumn="nama" editFunct={handleEdit} delFunct={handleDelete} />
       )}
 
       <Modal show={openModal} onClose={() => setOpenModal(false)}>
@@ -114,22 +100,10 @@ export default function KelolaMitra() {
           <Modal.Header>{isEdit ? "Edit Mitra" : "Tambah Mitra Baru"}</Modal.Header>
           <Modal.Body>
             <div className="space-y-4">
-              <div>
-                <Label value="Nama Perusahaan / Mitra *" />
-                <TextInput name="nama" value={formData.nama} onChange={handleChange} required />
-              </div>
-              <div>
-                <Label value="Layanan (Contoh: Maskapai, Hotel, Bus)" />
-                <TextInput name="layanan" value={formData.layanan} onChange={handleChange} />
-              </div>
-              <div>
-                <Label value="Nomor Telepon" />
-                <TextInput name="telepon" value={formData.telepon} onChange={handleChange} />
-              </div>
-              <div>
-                <Label value="Alamat" />
-                <TextInput name="alamat" value={formData.alamat} onChange={handleChange} />
-              </div>
+              <div><Label value="Nama Perusahaan / Mitra *" /><TextInput name="nama" value={formData.nama} onChange={handleChange} required /></div>
+              <div><Label value="Layanan (Contoh: Maskapai, Hotel, Bus)" /><TextInput name="layanan" value={formData.layanan} onChange={handleChange} /></div>
+              <div><Label value="Nomor Telepon" /><TextInput name="telepon" value={formData.telepon} onChange={handleChange} /></div>
+              <div><Label value="Alamat" /><TextInput name="alamat" value={formData.alamat} onChange={handleChange} /></div>
             </div>
           </Modal.Body>
           <Modal.Footer>

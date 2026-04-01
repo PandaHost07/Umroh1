@@ -1,24 +1,11 @@
 "use client";
-
-import { useEffect, useState } from "react";
-import PaymentListPage from "../payment";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Spinner } from "flowbite-react";
 
-export default function Page({ params }) {
-    const [id, setid] = useState(null)
-
-    useEffect(() => {
-        const fetchPaket = async () => {
-            const { slug } = await params;
-            if (!slug) return;
-            setid(slug);
-        };
-        fetchPaket();
-    }, [params]);
-
-    return (
-        <>
-            {id ? <PaymentListPage registrationId={id} /> : <Spinner />}
-        </>
-    );
+// Redirect ke halaman pembayaran utama jamaah
+export default function Page() {
+  const router = useRouter();
+  useEffect(() => { router.replace("/jamaah/pembayaran"); }, [router]);
+  return <div className="flex justify-center py-20"><Spinner size="xl" /></div>;
 }
