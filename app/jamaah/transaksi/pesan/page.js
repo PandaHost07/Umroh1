@@ -8,6 +8,8 @@ import formatCurrency from "@/components/Currency/currency";
 import formatDate from "@/components/Date/formatDate";
 import { HiCalendar, HiClock, HiLocationMarker, HiUserGroup, HiInformationCircle } from "react-icons/hi";
 
+import { alertSuccess, alertError } from "@/components/Alert/alert";
+
 export default function PemesananPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -72,14 +74,15 @@ export default function PemesananPage() {
         throw new Error(data.error || "Gagal melakukan pemesanan");
       }
 
-      setSuccess("Pemesanan berhasil! Silakan lanjutkan ke pembayaran.");
-      
-      // Redirect ke halaman pembayaran setelah 2 detik
+      alertSuccess("Pemesanan berhasil! Silakan lanjutkan ke pembayaran.");
+      setSuccess("done");
+
       setTimeout(() => {
         router.push("/jamaah/pembayaran");
-      }, 2000);
+      }, 1500);
 
     } catch (err) {
+      alertError(err.message || "Gagal melakukan pemesanan");
       setError(err.message);
     } finally {
       setSubmitting(false);

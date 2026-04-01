@@ -8,6 +8,7 @@ import formatCurrency from "@/components/Currency/currency";
 import formatDate from "@/components/Date/formatDate";
 import { HiOutlineClipboardList, HiUpload, HiEye, HiUser, HiDocumentText, HiStar } from "react-icons/hi";
 import Image from "next/image";
+import { alertSuccess, alertError } from "@/components/Alert/alert";
 
 export default function PembayaranPage() {
   const router = useRouter();
@@ -129,11 +130,12 @@ export default function PembayaranPage() {
         throw new Error(data.error || "Gagal upload bukti pembayaran");
       }
 
-      setSuccess("Bukti pembayaran berhasil diupload!");
+      alertSuccess("Bukti pembayaran berhasil diupload!");
       closeUploadModal();
-      fetchPendaftaran(); // Refresh data
+      fetchPendaftaran();
 
     } catch (err) {
+      alertError(err.message || "Gagal upload bukti pembayaran");
       setError(err.message);
     } finally {
       setUploading(false);
