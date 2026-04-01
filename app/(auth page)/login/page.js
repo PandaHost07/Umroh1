@@ -132,7 +132,18 @@ function LoginComponent() {
             <div className="mt-6 text-center space-y-2">
               <p className="text-sm text-gray-500">
                 Belum punya akun?{" "}
-                <a href="/register" className="text-blue-600 font-medium hover:underline">Daftar Sekarang</a>
+                <a href="/register"
+                  className="text-blue-600 font-medium hover:underline"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    // Animasi slide ke kiri sebelum navigasi
+                    document.body.style.transition = "transform 0.35s ease-in-out, opacity 0.35s";
+                    document.body.style.transform = "translateX(-100%)";
+                    document.body.style.opacity = "0";
+                    setTimeout(() => { window.location.href = "/register"; }, 350);
+                  }}>
+                  Daftar Sekarang
+                </a>
               </p>
               <a href="/" className="block text-xs text-gray-400 hover:text-gray-600 transition-colors">
                 ← Kembali ke Website
