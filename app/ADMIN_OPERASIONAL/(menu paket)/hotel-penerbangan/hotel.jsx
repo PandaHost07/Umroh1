@@ -1,154 +1,98 @@
 "use client";
+import { useEffect, useState } from "react";
+import { Button, Modal, Label, TextInput, Textarea, Spinner, Select } from "flowbite-react";
+import { alertSuccess, alertError } from "@/components/Alert/alert";
+import { FaEdit, FaTrash } from "react-icons/fa";
 
-import React, { useEffect, useState } from "react";
-import {
-  Button,
-  Modal,
-  Label,
-  TextInput,
-  Textarea,
-  Spinner,
-  Select,
-} from "flowbite-react";
+const EMPTY = { nama: "", bintang: "", lokasi: "", alamat: "", petaUrl: "", deskripsi: "" };
 
 export default function HotelPage() {
   const [hotels, setHotels] = useState([]);
-  const [loading, setLoading] = useState(false);
-
-  // Modal state
+  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [editId, setEditId] = useState(null);
+  const [form, setForm] = useState(EMPTY);
+  const [saving, setSaving] = useState(false);
 
-  // Form state (disesuaikan dengan schema Prisma)
-  const [form, setForm] = useState({
-    nama: "",
-    bintang: "",
-    lokasi: "",
-    alamat: "",
-    petaUrl: "",
-    deskripsi: "",
-  });
-
-  const [formError, setFormError] = useState(null);
-  const [formLoading, setFormLoading] = useState(false);
-
-  // Fetch hotel data
   const fetchHotels = async () => {
     setLoading(true);
-    const res = await fetch("/api/system/hotel");
-    if (res.ok) {
+    try {
+      const res = await fetch("/api/system/hotel");
       const data = await res.json();
       setHotels(Array.isArray(data) ? data : []);
-    }
-    setLoading(false);
+    } catch { alertError("Gagal memuat data hotel"); }
+    finally { setLoading(false); }
   };
 
-  useEffect(() => {
-    fetchHotels();
-  }, []);
+  useEffect(() => { fetchHotels(); }, []);
 
-  // Handle form input
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+  const openAdd = () => { setEditId(null); setForm(EMPTY); setShowModal(true); };
+  const openEdit = (h) => {
+    setEditId(h.id);
+    setForm({ nama: h.nama, bintang: h.bintang ?? "", lokasi: h.lokasi, alamat: h.alamat ?? "", petaUrl: h.petaUrl ?? "", deskripsi: h.deskripsi ?? "" });
+    setShowModal(true);
   };
 
-  // Submit tambah hotel
+  const handleDelete = async (id) => {
+    if (!confirm("Hapus hotel ini?")) return;
+    try {
+      const res = await fetch(`/api/system/delete?model=hotel&id=${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Gagal menghapus");
+      alertSuccess("Hotel dihapus");
+      fetchHotels();
+    } catch (err) { alertError(err.message); }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setFormError(null);
-    setFormLoading(true);
-
-    // Validasi sederhana
-    if (!form.nama || !form.lokasi) {
-      setFormError("Nama dan lokasi wajib diisi");
-      setFormLoading(false);
-      return;
-    }
-
+    if (!form.nama || !form.lokasi) { alertError("Nama dan lokasi wajib diisi"); return; }
+    setSaving(true);
     try {
+      const payload = { ...form, bintang: form.bintang ? parseInt(form.bintang) : null };
+      if (editId) payload.id = editId;
       const res = await fetch("/api/system/hotel", {
-        method: "POST",
+        method: editId ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          bintang: form.bintang ? parseInt(form.bintang) : null,
-        }),
+        body: JSON.stringify(payload),
       });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Gagal menambah hotel");
-      }
-
-      // Clear form & close modal
-      setForm({
-        nama: "",
-        bintang: "",
-        lokasi: "",
-        alamat: "",
-        petaUrl: "",
-        deskripsi: "",
-      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal menyimpan");
+      alertSuccess(editId ? "Hotel diperbarui" : "Hotel ditambahkan");
       setShowModal(false);
-
-      // Refresh hotel list
       fetchHotels();
-    } catch (err) {
-      setFormError(err.message);
-    } finally {
-      setFormLoading(false);
-    }
+    } catch (err) { alertError(err.message); }
+    finally { setSaving(false); }
   };
 
   return (
     <div>
-      <Button onClick={() => setShowModal(true)} className="mb-6 ms-auto">
-        Tambah Hotel
-      </Button>
+      <div className="flex justify-end mb-4">
+        <Button onClick={openAdd}>Tambah Hotel</Button>
+      </div>
 
       {loading ? (
-        <div className="flex justify-center">
-          <Spinner size="xl" />
-        </div>
+        <div className="flex justify-center py-10"><Spinner size="xl" /></div>
       ) : hotels.length === 0 ? (
-        <div className="flex justify-center my-20">
-          <p>Tidak ada data hotel</p>
-        </div>
+        <p className="text-center text-gray-400 py-10">Belum ada data hotel.</p>
       ) : (
-        <div className="overflow-x-auto shadow-md rounded">
-          <table className="w-full text-left text-sm text-gray-700">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="px-4 py-3">Nama</th>
-                <th className="px-4 py-3">Bintang</th>
-                <th className="px-4 py-3">Lokasi</th>
-                <th className="px-4 py-3">Alamat</th>
-                <th className="px-4 py-3">Peta URL</th>
-                <th className="px-4 py-3">Deskripsi</th>
-              </tr>
+        <div className="overflow-x-auto rounded border">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-gray-50 border-b">
+              <tr>{["Nama", "Bintang", "Lokasi", "Alamat", "Aksi"].map(h => <th key={h} className="px-4 py-2 font-semibold text-gray-600">{h}</th>)}</tr>
             </thead>
             <tbody>
-              {hotels.map((hotel) => (
-                <tr key={hotel.id} className="border-t">
-                  <td className="px-4 py-2">{hotel.nama}</td>
-                  <td className="px-4 py-2">{hotel.bintang ?? "-"}</td>
-                  <td className="px-4 py-2">{hotel.lokasi}</td>
-                  <td className="px-4 py-2">{hotel.alamat ?? "-"}</td>
+              {hotels.map((h) => (
+                <tr key={h.id} className="border-b hover:bg-gray-50">
+                  <td className="px-4 py-2 font-medium">{h.nama}</td>
+                  <td className="px-4 py-2">{h.bintang ? "⭐".repeat(h.bintang) : "-"}</td>
+                  <td className="px-4 py-2">{h.lokasi}</td>
+                  <td className="px-4 py-2">{h.alamat || "-"}</td>
                   <td className="px-4 py-2">
-                    {hotel.petaUrl ? (
-                      <a
-                        href={hotel.petaUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
-                      >
-                        Lihat Peta
-                      </a>
-                    ) : (
-                      "-"
-                    )}
+                    <div className="flex gap-2">
+                      <Button size="xs" color="blue" onClick={() => openEdit(h)}><FaEdit /></Button>
+                      <Button size="xs" color="failure" onClick={() => handleDelete(h.id)}><FaTrash /></Button>
+                    </div>
                   </td>
-                  <td className="px-4 py-2">{hotel.deskripsi ?? "-"}</td>
                 </tr>
               ))}
             </tbody>
@@ -156,106 +100,39 @@ export default function HotelPage() {
         </div>
       )}
 
-      {/* Modal Form Tambah Hotel */}
-      <Modal show={showModal} size="3xl" popup onClose={() => setShowModal(false)}>
-        <Modal.Header>Tambah Hotel Baru</Modal.Header>
-        <Modal.Body>
-          {formError && (
-            <div className="mb-4 text-red-600 font-medium">{formError}</div>
-          )}
-          <form onSubmit={handleSubmit}>
-            <div className="mb-4">
-              <Label htmlFor="nama" value="Nama Hotel" className="mb-2" />
-              <TextInput
-                id="nama"
-                name="nama"
-                placeholder="Masukkan nama hotel"
-                value={form.nama}
-                onChange={handleChange}
-                required
-              />
+      <Modal show={showModal} onClose={() => setShowModal(false)} size="lg">
+        <form onSubmit={handleSubmit}>
+          <Modal.Header>{editId ? "Edit Hotel" : "Tambah Hotel"}</Modal.Header>
+          <Modal.Body>
+            <div className="space-y-4">
+              <div><Label value="Nama Hotel *" /><TextInput name="nama" value={form.nama} onChange={e => setForm({...form, nama: e.target.value})} required /></div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label value="Bintang" />
+                  <Select value={form.bintang} onChange={e => setForm({...form, bintang: e.target.value})}>
+                    <option value="">Pilih</option>
+                    {[1,2,3,4,5].map(n => <option key={n} value={n}>{n} Bintang</option>)}
+                  </Select>
+                </div>
+                <div>
+                  <Label value="Lokasi *" />
+                  <Select value={form.lokasi} onChange={e => setForm({...form, lokasi: e.target.value})} required>
+                    <option value="">Pilih</option>
+                    <option value="MEKKAH">Mekkah</option>
+                    <option value="MADINAH">Madinah</option>
+                  </Select>
+                </div>
+              </div>
+              <div><Label value="Alamat" /><TextInput value={form.alamat} onChange={e => setForm({...form, alamat: e.target.value})} /></div>
+              <div><Label value="URL Peta" /><TextInput value={form.petaUrl} onChange={e => setForm({...form, petaUrl: e.target.value})} placeholder="https://maps.google.com/..." /></div>
+              <div><Label value="Deskripsi" /><Textarea rows={3} value={form.deskripsi} onChange={e => setForm({...form, deskripsi: e.target.value})} /></div>
             </div>
-
-            <div className="mb-4">
-              <Label htmlFor="bintang" value="Bintang (1-5)" className="mb-2" />
-              <Select
-                id="bintang"
-                name="bintang"
-                value={form.bintang}
-                onChange={handleChange}
-              >
-                <option value="">Pilih Bintang</option>
-                {[1, 2, 3, 4, 5].map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                ))}
-              </Select>
-            </div>
-
-            <div className="mb-4">
-              <Label htmlFor="lokasi" value="Lokasi Hotel" className="mb-2" />
-              <Select
-                id="lokasi"
-                name="lokasi"
-                value={form.lokasi}
-                onChange={handleChange}
-                required
-              >
-                <option value="">Pilih Lokasi</option>
-                <option value="MEKKAH">Mekkah</option>
-                <option value="MADINAH">Madinah</option>
-              </Select>
-            </div>
-
-            <div className="mb-4">
-              <Label htmlFor="alamat" value="Alamat" className="mb-2" />
-              <TextInput
-                id="alamat"
-                name="alamat"
-                placeholder="Alamat hotel"
-                value={form.alamat}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div className="mb-4">
-              <Label htmlFor="petaUrl" value="URL Peta (Google Maps)" className="mb-2" />
-              <TextInput
-                id="petaUrl"
-                name="petaUrl"
-                placeholder="https://maps.google.com/..."
-                value={form.petaUrl}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div className="mb-6">
-              <Label htmlFor="deskripsi" value="Deskripsi" className="mb-2" />
-              <Textarea
-                id="deskripsi"
-                name="deskripsi"
-                placeholder="Deskripsi hotel"
-                value={form.deskripsi}
-                onChange={handleChange}
-                rows={3}
-              />
-            </div>
-
-            <div className="flex justify-end gap-2">
-              <Button
-                color="gray"
-                onClick={() => setShowModal(false)}
-                disabled={formLoading}
-              >
-                Batal
-              </Button>
-              <Button type="submit" disabled={formLoading}>
-                {formLoading ? "Menyimpan..." : "Tambah Hotel"}
-              </Button>
-            </div>
-          </form>
-        </Modal.Body>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button type="submit" disabled={saving}>{saving ? "Menyimpan..." : "Simpan"}</Button>
+            <Button color="gray" onClick={() => setShowModal(false)}>Batal</Button>
+          </Modal.Footer>
+        </form>
       </Modal>
     </div>
   );

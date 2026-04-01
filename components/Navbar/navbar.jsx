@@ -16,13 +16,9 @@ function NavbarComponent({ navbar_list, logo, title = "ADA Tour Travel" }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    window.addEventListener("scroll", () => {
-      if (window.scrollY > 100) {
-        setToUp(true);
-      } else {
-        setToUp(false);
-      }
-    });
+    const handleScroll = () => setToUp(window.scrollY > 100);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const [ToUp, setToUp] = useState(false);
@@ -98,8 +94,6 @@ function NavbarComponent({ navbar_list, logo, title = "ADA Tour Travel" }) {
             <li className="pt-4 md:pt-0 ms-auto">
               {data ? (
                 <a href={data && `/${data.user.role}`}>
-                  {console.log(data)
-                  }
                   {data && data.user.gambar ? (
                     <Image
                       src={data.user.gambar}

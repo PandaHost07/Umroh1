@@ -1,5 +1,7 @@
 import prisma from "@/lib/prisma";
 import { uploadFileToVercel } from "@/lib/uploadFile";
+import { hitungKuotaTersedia, buildKuotaResponse } from "@/lib/kuota";
+import { requireRole } from "@/lib/authGuard";
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +16,10 @@ export async function GET(req) {
     const includeOptions = {
       hotel: true,
       penerbangan: true,
-      pendaftaran: true,
+      pendaftaran: {
+        where: { status: { in: ["MENUNGGU", "TERKONFIRMASI"] } },
+        select: { id: true, status: true },
+      },
     };
 
     if (paketId) {
@@ -55,9 +60,12 @@ export async function GET(req) {
 }
 
 // =======================================
-// POST - Tambah Paket Umrah Baru
+// POST - Tambah Paket Umrah Baru — hanya ADMIN_OPERASIONAL
 // =======================================
 export async function POST(req) {
+  const guard = await requireRole(req, ["ADMIN_OPERASIONAL"]);
+  if (guard) return guard;
+
   try {
     const formData = await req.formData();
     const formString = formData.get("form");
@@ -127,9 +135,12 @@ export async function POST(req) {
 }
 
 // =======================================
-// PATCH - Update Paket
+// PATCH - Update Paket — hanya ADMIN_OPERASIONAL
 // =======================================
 export async function PATCH(req) {
+  const guard = await requireRole(req, ["ADMIN_OPERASIONAL"]);
+  if (guard) return guard;
+
   try {
     const formData = await req.formData();
     const formString = formData.get("form");
@@ -142,7 +153,6 @@ export async function PATCH(req) {
     }
 
     const body = JSON.parse(formString);
-    console.log("PATCH RECEIVED:", body);
 
     if (!body.id) {
       return new Response(
@@ -184,7 +194,21 @@ export async function PATCH(req) {
     }
     if (dataToUpdate.kuota) {
       dataToUpdate.kuota = parseInt(dataToUpdate.kuota);
-      if (dataToUpdate.kuota > 10000) throw new Error("Kuota tidak valid atau terlalu besar.");
+      if (isNaN(dataToUpdate.kuota) || dataToUpdate.kuota <= 0)
+        throw new Error("Kuota harus bilangan bulat positif.");
+      if (dataToUpdate.kuota > 10000)
+        throw new Error("Kuota tidak valid atau terlalu besar.");
+
+      // Validasi: kuota baru tidak boleh < pendaftaran aktif
+      const pendaftaranAktif = await hitungKuotaTersedia(prisma, id);
+      if (dataToUpdate.kuota < pendaftaranAktif) {
+        return new Response(
+          JSON.stringify({
+            error: `Kuota baru tidak boleh lebih kecil dari jumlah pendaftaran aktif (${pendaftaranAktif} pendaftaran)`,
+          }),
+          { status: 400 }
+        );
+      }
     }
 
     const updatedPaket = await prisma.paket.update({
@@ -192,7 +216,10 @@ export async function PATCH(req) {
       data: dataToUpdate,
     });
 
-    return new Response(JSON.stringify(updatedPaket), { status: 200 });
+    const used = await hitungKuotaTersedia(prisma, id);
+    const kuotaInfo = buildKuotaResponse(updatedPaket, used);
+
+    return new Response(JSON.stringify({ ...updatedPaket, ...kuotaInfo }), { status: 200 });
   } catch (error) {
     console.error("PATCH paket error:", error);
     return new Response(

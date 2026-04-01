@@ -20,15 +20,22 @@ export default function PaketList() {
       if (!res.ok) throw new Error("Gagal memuat data paket");
       const data = await res.json();
       
-      const mapped = (Array.isArray(data) ? data : []).map(p => ({
-        id: p.id,
-        gambar: p.gambar,
-        nama: p.nama,
-        harga: p.harga,
-        kuota: p.kuota,
-        terisi: p.pendaftaran ? p.pendaftaran.length : 0,
-        keberangkatan: p.tanggalBerangkat
-      }));
+      const mapped = (Array.isArray(data) ? data : []).map(p => {
+        const terisi = p.pendaftaran
+          ? p.pendaftaran.filter(d => ["MENUNGGU", "TERKONFIRMASI"].includes(d.status)).length
+          : 0;
+        return {
+          id: p.id,
+          gambar: p.gambar,
+          nama: p.nama,
+          harga: p.harga,
+          kuota: p.kuota,
+          terisi,
+          isPenuh: terisi >= p.kuota,
+          keberangkatan: p.tanggalBerangkat,
+          status: p.status,
+        };
+      });
       setPakets(mapped);
     } catch (err) {
       setError(err.message);
@@ -70,6 +77,16 @@ export default function PaketList() {
       <TableComponent 
         data={pakets} 
         editFunct={(item) => router.push(`/ADMIN_OPERASIONAL/daftar-paket/edit/${item.id}`)}
+        delFunct={async (item) => {
+          if (!confirm(`Hapus paket "${item.nama}"?`)) return;
+          try {
+            const res = await fetch(`/api/system/delete?model=paket&id=${item.id}`, { method: "DELETE" });
+            if (!res.ok) throw new Error("Gagal menghapus paket");
+            fetchPakets();
+          } catch (err) {
+            alert(err.message);
+          }
+        }}
       />
 
     </AdminContainer>

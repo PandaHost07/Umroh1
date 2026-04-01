@@ -105,6 +105,11 @@ export default function KeberangkatanPage() {
                     <div>
                       <p className="text-sm text-gray-600">Hotel</p>
                       <p className="font-semibold">{pendaftaran.paket.hotel?.nama || "TBA"}</p>
+                      {pendaftaran.paket.hotel?.lokasi && (
+                        <p className="text-xs text-purple-600 font-medium mt-0.5">
+                          {pendaftaran.paket.hotel.lokasi}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -122,20 +127,29 @@ export default function KeberangkatanPage() {
                         <p className="font-medium">{pendaftaran.paket.penerbangan.maskapai || "TBA"}</p>
                       </div>
                       <div>
-                        <span className="text-gray-600">Berangkat dari:</span>
-                        <p className="font-medium">{pendaftaran.paket.penerbangan.bandaraBerangkat}</p>
+                        <span className="text-gray-600">Bandara Keberangkatan:</span>
+                        <p className="font-medium">{pendaftaran.paket.penerbangan.bandaraBerangkat || "TBA"}</p>
                       </div>
-                      {pendaftaran.paket.penerbangan.waktuBerangkat && (
-                        <div>
-                          <span className="text-gray-600">Waktu Berangkat:</span>
-                          <p className="font-medium">
-                            {new Date(pendaftaran.paket.penerbangan.waktuBerangkat).toLocaleTimeString('id-ID', {
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </p>
-                        </div>
-                      )}
+                      <div>
+                        <span className="text-gray-600">Bandara Tujuan:</span>
+                        <p className="font-medium">{pendaftaran.paket.penerbangan.bandaraTiba || "TBA"}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Waktu Berangkat:</span>
+                        <p className="font-medium">
+                          {pendaftaran.paket.penerbangan.waktuBerangkat
+                            ? new Date(pendaftaran.paket.penerbangan.waktuBerangkat).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })
+                            : "TBA"}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Waktu Tiba:</span>
+                        <p className="font-medium">
+                          {pendaftaran.paket.penerbangan.waktuTiba
+                            ? new Date(pendaftaran.paket.penerbangan.waktuTiba).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })
+                            : "TBA"}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 )}

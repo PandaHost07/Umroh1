@@ -69,7 +69,6 @@ export default function CountdownTimer({ data }) {
         alertError(result.error || "Gagal mengirim pembayaran.");
       }
     } catch (err) {
-      console.error("Error saat kirim:", err);
       alertError("Terjadi kesalahan.");
     } finally {
       setLoadingUpload(false);
@@ -91,7 +90,7 @@ export default function CountdownTimer({ data }) {
               src={data.paket.gambar}
               alt={data.paket.nama}
               fill
-              objectFit="cover"
+              style={{ objectFit: "cover" }}
               className="rounded-t"
             />
           </div>

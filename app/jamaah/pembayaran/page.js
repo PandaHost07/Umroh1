@@ -21,10 +21,6 @@ export default function PembayaranPage() {
   const [uploading, setUploading] = useState(false);
   const [buktiFile, setBuktiFile] = useState(null);
 
-  useEffect(() => {
-    fetchPendaftaran();
-  }, [fetchPendaftaran]);
-
   const fetchPendaftaran = useCallback(async () => {
     try {
       const res = await fetch(`/api/jamaah/pendaftaran?email=${session?.user?.email}`);
@@ -41,6 +37,10 @@ export default function PembayaranPage() {
       setLoading(false);
     }
   }, [session?.user?.email]);
+
+  useEffect(() => {
+    fetchPendaftaran();
+  }, [fetchPendaftaran]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -222,7 +222,10 @@ export default function PembayaranPage() {
                         return (order[a.jenis] || 99) - (order[b.jenis] || 99);
                       })
                       .map((pembayaran, index) => (
-                      <div key={pembayaran.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border-l-4 border-l-blue-500">
+                      <div key={pembayaran.id} className={`flex items-center justify-between p-4 bg-gray-50 rounded-lg border-l-4 ${
+                        pembayaran.status === "TERVERIFIKASI" ? "border-l-green-500" :
+                        pembayaran.status === "DITOLAK" ? "border-l-red-500" : "border-l-blue-500"
+                      }`}>
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <span className="font-semibold text-lg">{getJenisLabel(pembayaran.jenis)}</span>
@@ -265,8 +268,20 @@ export default function PembayaranPage() {
                             <HiUpload className="mr-1" />
                             Upload Bukti
                           </Button>
+                        ) : pembayaran.status === "DITOLAK" ? (
+                          <div className="flex flex-col items-end gap-2">
+                            <Badge color="failure" size="sm">Ditolak</Badge>
+                            <Button
+                              size="sm"
+                              color="warning"
+                              onClick={() => openUploadModal(pembayaran)}
+                            >
+                              <HiUpload className="mr-1" />
+                              Upload Ulang
+                            </Button>
+                          </div>
                         ) : (
-                          <div className="text-green-600 font-medium text-sm">
+                          <div className="text-green-600 font-medium text-sm flex items-center gap-1">
                             ✓ Terverifikasi
                           </div>
                         )}

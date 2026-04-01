@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+import { getRoleFromRequest } from "@/lib/authGuard";
 
 // ==========================
 // GET Pendaftaran
@@ -7,10 +8,12 @@ export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
     const pendaftaranId = searchParams.get("id");
+    const role = await getRoleFromRequest(req);
 
     const includeOptions = {
       akun: true,
       paket: true,
+      pembayaran: true,
     };
 
     if (pendaftaranId) {
@@ -20,10 +23,7 @@ export async function GET(req) {
       });
 
       if (!pendaftaran) {
-        return new Response(
-          JSON.stringify({ error: "Pendaftaran tidak ditemukan" }),
-          { status: 404 }
-        );
+        return new Response(JSON.stringify({ error: "Pendaftaran tidak ditemukan" }), { status: 404 });
       }
 
       return new Response(JSON.stringify(pendaftaran), {
@@ -32,6 +32,7 @@ export async function GET(req) {
       });
     }
 
+    // Admin keuangan & operasional bisa lihat semua
     const all = await prisma.pendaftaran.findMany({
       orderBy: { created: "desc" },
       include: includeOptions,
@@ -43,10 +44,7 @@ export async function GET(req) {
     });
   } catch (error) {
     console.error("GET pendaftaran error:", error);
-    return new Response(
-      JSON.stringify({ error: "Terjadi kesalahan saat mengambil data pendaftaran" }),
-      { status: 500 }
-    );
+    return new Response(JSON.stringify({ error: "Terjadi kesalahan" }), { status: 500 });
   }
 }
 

@@ -17,7 +17,11 @@ export async function GET(req) {
       return new Response(JSON.stringify(sanitizeUser(user)), { status: 200 });
     }
 
-    const users = await prisma.akun.findMany({ include: { profil: true } });
+    const role = searchParams.get("role");
+    const users = await prisma.akun.findMany({
+      where: role ? { role: role } : undefined,
+      include: { profil: true } 
+    });
     const safeUsers = users.map(sanitizeUser);
     return new Response(JSON.stringify(safeUsers), { status: 200 });
   } catch (error) {

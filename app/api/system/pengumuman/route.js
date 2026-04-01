@@ -1,78 +1,39 @@
 import prisma from "@/lib/prisma";
 
-const model = "announcement";
+const model = "pengumuman";
 
 export async function GET(req) {
   try {
-    const { searchParams } = new URL(req.url);
-    const id = searchParams.get("id");
-    const isActive = searchParams.get("isActive");
-
-    if (id) {
-      const data = await prisma[model].findUnique({
-        where: { id },
-        include: { createdBy: true },
-      });
-
-      if (!data) {
-        return new Response(JSON.stringify({ error: "Announcement tidak ditemukan" }), { status: 404 });
-      }
-
-      return new Response(JSON.stringify(data), { status: 200 });
-    }
-
-    // Filter aktif jika diberikan
-    const whereClause = {};
-    if (isActive !== null) {
-      whereClause.isActive = isActive === "true";
-    }
-
-    const dataList = await prisma[model].findMany({
-      where: whereClause,
-      orderBy: { startDate: "desc" },
-      include: { createdBy: true },
+    const dataList = await prisma.pengumuman.findMany({
+      orderBy: { tanggalMulai: "desc" }
     });
-
     return new Response(JSON.stringify(dataList), { status: 200 });
   } catch (error) {
-    console.error("GET announcement error:", error);
-    return new Response(
-      JSON.stringify({ error: "Terjadi kesalahan saat mengambil data pengumuman" }),
-      { status: 500 }
-    );
+    return new Response(JSON.stringify({ error: "Terjadi kesalahan" }), { status: 500 });
   }
 }
 
 export async function POST(req) {
   try {
     const body = await req.json();
-    const { title, content, startDate, endDate, isActive, createdById } = body;
+    const { title, content, startDate, endDate, isActive, pendaftaranId, createdById } = body;
 
-    if (!title || !content || !startDate || !createdById) {
-      return new Response(
-        JSON.stringify({ error: "Field 'title', 'content', 'startDate' dan 'createdById' wajib diisi" }),
-        { status: 400 }
-      );
-    }
-
-    const newData = await prisma[model].create({
+    const newData = await prisma.pengumuman.create({
       data: {
-        title,
-        content,
-        startDate: new Date(startDate),
-        endDate: endDate ? new Date(endDate) : null,
-        isActive: isActive !== undefined ? isActive : true,
-        createdById,
+        judul: title,
+        isi: content,
+        tanggalMulai: new Date(startDate),
+        tanggalSelesai: endDate ? new Date(endDate) : null,
+        aktif: isActive !== undefined ? isActive : true,
+        dibuatOlehId: createdById || "admin",
+        pendaftaranId: pendaftaranId || "global", // fallback jika tidak terikat
       },
     });
 
     return new Response(JSON.stringify(newData), { status: 201 });
   } catch (error) {
-    console.error("POST announcement error:", error);
-    return new Response(
-      JSON.stringify({ error: "Terjadi kesalahan saat membuat pengumuman" }),
-      { status: 500 }
-    );
+    console.error(error);
+    return new Response(JSON.stringify({ error: "Terjadi kesalahan buat pengumuman" }), { status: 500 });
   }
 }
 

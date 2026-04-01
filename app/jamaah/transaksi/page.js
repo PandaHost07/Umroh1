@@ -2,35 +2,35 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
-import { Card, Button, Badge, Alert, Spinner, Modal } from "flowbite-react";
-import formatCurrency from "@/components/Currency/currency";
+import { Badge, Button, Modal, Spinner } from "flowbite-react";
 import formatDate from "@/components/Date/formatDate";
-import { HiX, HiTrash, HiCalendar, HiUser } from "react-icons/hi";
+import { HiTrash } from "react-icons/hi";
+
+const STATUS_COLOR = {
+  MENUNGGU: "warning",
+  TERKONFIRMASI: "success",
+  TIDAK_TERKONFIRMASI: "failure",
+  DIBATALKAN: "gray",
+};
 
 export default function TransaksiPage() {
   const { data: session } = useSession();
-  const [pendaftaranList, setPendaftaranList] = useState([]);
+  const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [showCancelModal, setShowCancelModal] = useState(false);
-  const [selectedPendaftaran, setSelectedPendaftaran] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [selected, setSelected] = useState(null);
   const [cancelling, setCancelling] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
 
-  const fetchPendaftaran = useCallback(async () => {
+  const fetchData = useCallback(async () => {
+    if (!session?.user?.email) return;
     try {
-      const res = await fetch(`/api/jamaah/pendaftaran?email=${session?.user?.email}`);
+      const res = await fetch(`/api/jamaah/pendaftaran?email=${session.user.email}`);
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Gagal memuat data");
-      }
-
-      setPendaftaranList(data);
-      console.log("Pendaftaran data:", data); // Debug log
+      if (!res.ok) throw new Error(data.error || "Gagal memuat data");
+      setList(data);
     } catch (err) {
-      console.error("Error fetching pendaftaran:", err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -38,58 +38,28 @@ export default function TransaksiPage() {
   }, [session?.user?.email]);
 
   useEffect(() => {
-    fetchPendaftaran();
-  }, [fetchPendaftaran]);
+    fetchData();
+  }, [fetchData]);
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "MENUNGGU": return "yellow";
-      case "TERKONFIRMASI": return "green";
-      case "TIDAK_TERKONFIRMASI": return "red";
-      case "DIBATALKAN": return "gray";
-      default: return "gray";
-    }
-  };
-
-  const openCancelModal = (pendaftaran) => {
-    setSelectedPendaftaran(pendaftaran);
-    setShowCancelModal(true);
+  const openCancel = (item) => {
+    setSelected(item);
     setCancelReason("");
-  };
-
-  const closeCancelModal = () => {
-    setShowCancelModal(false);
-    setSelectedPendaftaran(null);
-    setCancelReason("");
+    setShowModal(true);
   };
 
   const handleCancel = async () => {
-    if (!selectedPendaftaran) return;
-
+    if (!selected) return;
     setCancelling(true);
-    setError("");
-    setSuccess("");
-
     try {
-      const res = await fetch('/api/jamaah/cancel', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          pendaftaranId: selectedPendaftaran.id,
-          alasan: cancelReason
-        })
+      const res = await fetch("/api/jamaah/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pendaftaranId: selected.id, alasan: cancelReason }),
       });
-
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Gagal membatalkan pemesanan");
-      }
-
-      setSuccess(`Pemesanan berhasil dibatalkan! Refund: ${formatCurrency(data.refundAmount)} (${data.refundPercentage}%)`);
-      closeCancelModal();
-      fetchPendaftaran();
-
+      if (!res.ok) throw new Error(data.error || "Gagal membatalkan");
+      setShowModal(false);
+      fetchData();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -97,203 +67,115 @@ export default function TransaksiPage() {
     }
   };
 
-  const canCancel = (pendaftaran) => {
-    const verifiedPayments = pendaftaran.pembayaran?.filter(p => p.status === "TERVERIFIKASI") || [];
-    return verifiedPayments.length === 0 && pendaftaran.status !== "DIBATALKAN";
-  };
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <Spinner size="xl" />
-      </div>
-    );
-  }
+  const canCancel = (item) =>
+    item.status !== "DIBATALKAN" &&
+    (item.pembayaran?.filter((p) => p.status === "TERVERIFIKASI") || []).length === 0;
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">Daftar Pemesanan Saya</h1>
-        <p className="text-gray-600 mt-2">Kelola dan pantau semua pemesanan paket umrah Anda</p>
-      </div>
+    <div>
+      <h1 className="text-2xl font-bold mb-6 uppercase tracking-wide">Transaksi</h1>
 
-      {error && <Alert color="failure" className="mb-4">{error}</Alert>}
-      {success && <Alert color="success" className="mb-4">{success}</Alert>}
-
-      {pendaftaranList.length === 0 ? (
-        <Card>
-          <div className="text-center py-8">
-            <p className="text-gray-600">Belum ada pemesanan paket</p>
-            <Button 
-              color="blue" 
-              className="mt-4"
-              onClick={() => window.location.href = "/"}
-            >
-              Lihat Paket Umrah
-            </Button>
-          </div>
-        </Card>
-      ) : (
-        <div className="space-y-4">
-          {pendaftaranList.map((pendaftaran) => (
-            <Card key={pendaftaran.id} className="hover:shadow-lg transition-shadow">
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex-1">
-                    <h3 className="text-xl font-bold mb-2">{pendaftaran.paket.nama}</h3>
-                    <p className="text-gray-600 text-sm mb-3 line-clamp-2">{pendaftaran.paket.deskripsi}</p>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                      <div>
-                        <span className="text-gray-600">Tanggal Pesan:</span>
-                        <p className="font-medium">{formatDate(pendaftaran.created, "short")}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Keberangkatan:</span>
-                        <p className="font-medium">{formatDate(pendaftaran.paket.tanggalBerangkat, "short")}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Kepulangan:</span>
-                        <p className="font-medium">{formatDate(pendaftaran.paket.tanggalPulang, "short")}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-4 mt-3">
-                      <div>
-                        <span className="text-gray-600">Total Harga:</span>
-                        <p className="text-lg font-bold text-green-600">{formatCurrency(pendaftaran.paket.harga)}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Status:</span>
-                        <Badge color={getStatusColor(pendaftaran.status)} size="lg">
-                          {pendaftaran.status}
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2 ml-4">
-                    {pendaftaran.status === "MENUNGGU" && (
-                      <Button
-                        size="sm"
-                        color="blue"
-                        onClick={() => window.location.href = `/transaksi/pesan?pesan=${pendaftaran.paket.id}`}
-                      >
-                        <HiCalendar className="mr-1" />
-                        Lihat Detail
-                      </Button>
-                    )}
-                    
-                    {canCancel(pendaftaran) && (
-                      <Button
-                        size="sm"
-                        color="failure"
-                        onClick={() => openCancelModal(pendaftaran)}
-                      >
-                        <HiTrash className="mr-1" />
-                        Batalkan
-                      </Button>
-                    )}
-
-                    {pendaftaran.status === "DIBATALKAN" && (
-                      <Badge color="gray" size="sm">
-                        <HiX className="mr-1" />
-                        Dibatalkan
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-
-                {/* Progress Pembayaran */}
-                {pendaftaran.pembayaran && pendaftaran.pembayaran.length > 0 && (
-                  <div className="mt-4 pt-4 border-t">
-                    <h4 className="font-semibold mb-3">Progress Pembayaran</h4>
-                    <div className="space-y-2">
-                      {pendaftaran.pembayaran.map((pembayaran) => (
-                        <div key={pembayaran.id} className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{formatCurrency(pembayaran.jumlah)}</span>
-                            <Badge color={getStatusColor(pembayaran.status)} size="sm">
-                              {pembayaran.status}
-                            </Badge>
-                          </div>
-                          <span className="text-sm text-gray-600">
-                            {formatDate(pembayaran.created, "short")}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </Card>
-          ))}
+      {error && (
+        <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded p-3">
+          {error}
         </div>
       )}
 
-      {/* Modal Cancel */}
-      <Modal show={showCancelModal} onClose={closeCancelModal} size="md">
-        <Modal.Header>
-          <div className="flex items-center gap-2">
-            <HiTrash className="text-red-600" />
-            Batalkan Pemesanan
-          </div>
-        </Modal.Header>
-        <Modal.Body>
-          {selectedPendaftaran && (
-            <div className="space-y-4">
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <h4 className="font-semibold text-red-900 mb-2">Konfirmasi Pembatalan</h4>
-                <p className="text-red-800 text-sm">
-                  Anda yakin ingin membatalkan pemesanan untuk paket <strong>{selectedPendaftaran.paket.nama}</strong>?
-                </p>
-                <div className="mt-3 text-sm text-red-700">
-                  <p><strong>Kebijakan Refund:</strong></p>
-                  <ul className="list-disc list-inside mt-1 space-y-1">
-                    <li>• 100% refund jika dibatalkan dalam 7 hari</li>
-                    <li>• 50% refund jika dibatalkan 8-30 hari</li>
-                    <li>• 25% refund jika dibatalkan &gt; 30 hari</li>
-                    <li>• Tidak ada refund jika sudah ada pembayaran terverifikasi</li>
-                  </ul>
-                </div>
-              </div>
+      <div className="overflow-x-auto border border-gray-300 rounded">
+        <table className="w-full text-sm text-left">
+          <thead className="bg-white border-b border-gray-300">
+            <tr>
+              {["No", "Email", "Nama", "Tgl Pesanan", "Paket", "Status", "Aksi"].map((h) => (
+                <th key={h} className="px-4 py-3 font-semibold text-gray-700 border-r border-gray-200 last:border-r-0">
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={7} className="text-center py-10">
+                  <Spinner size="md" />
+                </td>
+              </tr>
+            ) : list.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="text-center py-10 text-gray-400">
+                  Belum ada transaksi.
+                </td>
+              </tr>
+            ) : (
+              list.map((item, i) => (
+                <tr key={item.id} className="border-b border-gray-200 hover:bg-gray-50">
+                  <td className="px-4 py-3 border-r border-gray-200 text-center">{i + 1}</td>
+                  <td className="px-4 py-3 border-r border-gray-200">{item.akunEmail}</td>
+                  <td className="px-4 py-3 border-r border-gray-200">{item.akun?.nama ?? "-"}</td>
+                  <td className="px-4 py-3 border-r border-gray-200">
+                    {formatDate(item.created, "short")}
+                  </td>
+                  <td className="px-4 py-3 border-r border-gray-200 max-w-[180px]">
+                    <span className="line-clamp-2">{item.paket?.nama ?? "-"}</span>
+                  </td>
+                  <td className="px-4 py-3 border-r border-gray-200">
+                    <Badge color={STATUS_COLOR[item.status] ?? "gray"} size="sm">
+                      {item.status}
+                    </Badge>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex gap-2 flex-wrap">
+                      <Button
+                        size="xs"
+                        color="blue"
+                        href={`/jamaah/transaksi/${item.id}`}
+                      >
+                        Detail
+                      </Button>
+                      {canCancel(item) && (
+                        <Button
+                          size="xs"
+                          color="failure"
+                          onClick={() => openCancel(item)}
+                        >
+                          <HiTrash size={12} className="mr-1" />
+                          Batal
+                        </Button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Alasan Pembatalan (opsional)
-                </label>
-                <textarea
-                  rows={3}
-                  value={cancelReason}
-                  onChange={(e) => setCancelReason(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Masukkan alasan pembatalan..."
-                />
-              </div>
+      {/* Modal Batalkan */}
+      <Modal show={showModal} onClose={() => setShowModal(false)} size="md">
+        <Modal.Header>Batalkan Pemesanan</Modal.Header>
+        <Modal.Body>
+          {selected && (
+            <div className="space-y-4">
+              <p className="text-sm text-gray-700">
+                Batalkan pemesanan paket{" "}
+                <span className="font-semibold">{selected.paket?.nama}</span>?
+              </p>
+              <textarea
+                rows={3}
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
+                placeholder="Alasan pembatalan (opsional)..."
+              />
             </div>
           )}
         </Modal.Body>
         <Modal.Footer>
-          <Button
-            color="gray"
-            onClick={closeCancelModal}
-            disabled={cancelling}
-          >
-            Batal
+          <Button color="gray" onClick={() => setShowModal(false)} disabled={cancelling}>
+            Tutup
           </Button>
-          <Button
-            color="failure"
-            onClick={handleCancel}
-            disabled={cancelling}
-          >
-            {cancelling ? (
-              <>
-                <Spinner size="sm" className="mr-2" />
-                Memproses...
-              </>
-            ) : (
-              "Ya, Batalkan Pemesanan"
-            )}
+          <Button color="failure" onClick={handleCancel} disabled={cancelling}>
+            {cancelling ? <Spinner size="sm" /> : "Ya, Batalkan"}
           </Button>
         </Modal.Footer>
       </Modal>

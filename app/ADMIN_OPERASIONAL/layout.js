@@ -1,6 +1,6 @@
 import Sidebar from "@/components/Sidebar/sidebar";
 import { ThemeProvider } from "next-themes";
-import { FaClipboardCheck, FaClipboardList, FaUser } from "react-icons/fa";
+import { FaClipboardCheck, FaClipboardList, FaUser, FaStar } from "react-icons/fa";
 import { IoIosDocument } from "react-icons/io";
 import { IoHomeSharp } from "react-icons/io5";
 import { PiArrowSquareUpRightBold } from "react-icons/pi";
@@ -28,15 +28,35 @@ const Sidebar_list = [
         link: "/kelengkapan-dokumen",
         icon: <IoIosDocument size={18} />,
       },
-            {
+      {
+        title: "Data Jamaah",
+        link: "/data-jamaah",
+        icon: <FaUser size={18} />,
+      },
+      {
         title: "Kelengkapan Atribut",
         link: "/kelengkapan-atribut",
         icon: <FaClipboardCheck size={18} />,
       },
       {
-        title: "Keberangkatan",
+        title: "Keberangkatan & Manasik",
         link: "/keberangkatan",
         icon: <RiCalendarScheduleFill size={18} />,
+      },
+      {
+        title: "Pengumuman",
+        link: "/pengumuman",
+        icon: <IoIosDocument size={18} />, 
+      },
+      {
+        title: "Kelola Mitra",
+        link: "/mitra",
+        icon: <FaClipboardList size={18} />,
+      },
+      {
+        title: "Testimoni",
+        link: "/testimoni",
+        icon: <FaStar size={18} />,
       },
     ],
   },

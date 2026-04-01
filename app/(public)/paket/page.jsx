@@ -29,12 +29,16 @@ function PaketComponentPage() {
 
   useEffect(() => {
     const fetching = async () => {
-      const res = await fetch(`/api/system/paket`);
-      const resJson = await res.json();
-      if (res.ok) {
-        setListPaket(resJson);
-        setLoading(false);
-      } else {
+      try {
+        const res = await fetch(`/api/public/paket`);
+        const resJson = await res.json();
+        if (res.ok && resJson.paket) {
+          setListPaket(resJson.paket);
+          setLoading(false);
+        } else {
+          setFailed("Terjadi Kesalahan!!! Silahkan Refresh Ulang Halaman");
+        }
+      } catch {
         setFailed("Terjadi Kesalahan!!! Silahkan Refresh Ulang Halaman");
       }
     };
@@ -131,9 +135,9 @@ function PaketComponentPage() {
 
                   <div className="mt-auto space-y-4">
                     <div className="font-medium text-gray-700 text-sm">
-                      Seat Terisi : {(paket.registrasi?.length || 0)} dari {paket.kuota}
+                      Seat Terisi : {paket.quotaUsage?.used ?? (paket.registrasi?.length || 0)} dari {paket.kuota}
                       <Progress
-                        progress={Math.min(100, ((paket.registrasi?.length || 0) / paket.kuota) * 100)}
+                        progress={Math.min(100, ((paket.quotaUsage?.used ?? paket.registrasi?.length ?? 0) / paket.kuota) * 100)}
                         size="sm"
                         className="mt-2"
                       />

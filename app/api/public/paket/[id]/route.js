@@ -1,29 +1,13 @@
 import prisma from "@/lib/prisma";
+import { hitungKuotaTersedia, buildKuotaResponse } from "@/lib/kuota";
 
 export async function GET(req, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     const paket = await prisma.paket.findUnique({
-      where: { 
-        id,
-        status: "AKTIF"
-      },
-      include: {
-        hotel: true,
-        penerbangan: true,
-        _count: {
-          select: {
-            pendaftaran: {
-              where: {
-                status: {
-                  in: ["MENUNGGU", "TERKONFIRMASI"]
-                }
-              }
-            }
-          }
-        }
-      }
+      where: { id, status: "AKTIF" },
+      include: { hotel: true, penerbangan: true },
     });
 
     if (!paket) {
@@ -33,17 +17,11 @@ export async function GET(req, { params }) {
       );
     }
 
-    // Hitung sisa kuota
-    const paketWithQuota = {
-      ...paket,
-      kuotaTersedia: paket.kuota - paket._count.pendaftaran
-    };
-
+    const used = await hitungKuotaTersedia(prisma, id);
     return new Response(
-      JSON.stringify(paketWithQuota),
-      { status: 200 }
+      JSON.stringify({ ...paket, ...buildKuotaResponse(paket, used) }),
+      { status: 200, headers: { "Content-Type": "application/json" } }
     );
-
   } catch (error) {
     console.error("Error fetching paket detail:", error);
     return new Response(

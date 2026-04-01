@@ -3,8 +3,8 @@
 import { signIn, useSession } from "next-auth/react";
 import LoginImage from "../../../public/login.png";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
 
 function LoginComponent() {
   const [email, setEmail] = useState("");
@@ -16,11 +16,17 @@ function LoginComponent() {
   const { data } = useSession();
 
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     if (data) {
       router.push(`/${data.user.role}`);
+    }
+    // Tangkap error dari NextAuth redirect (misal: ?error=CredentialsSignin)
+    const urlError = searchParams.get("error");
+    if (urlError) {
+      setError("Email atau password salah. Silakan coba lagi.");
     }
     setMounted(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -209,4 +215,10 @@ function LoginComponent() {
   );
 }
 
-export default LoginComponent;
+export default function Page() {
+  return (
+    <Suspense>
+      <LoginComponent />
+    </Suspense>
+  );
+}

@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import { uploadFileToVercel } from "@/lib/uploadFile";
+import { requireRole } from "@/lib/authGuard";
 
 // ==========================
 // GET Pembayaran
@@ -127,9 +128,12 @@ export async function POST(req) {
 }
 
 // ==========================
-// PATCH Pembayaran
+// PATCH Pembayaran — hanya ADMIN_KEUANGAN
 // ==========================
 export async function PATCH(req) {
+  const guard = await requireRole(req, ["ADMIN_KEUANGAN"]);
+  if (guard) return guard;
+
   try {
     const body = await req.json();
     const { id, jumlah, status, buktiUrl } = body;

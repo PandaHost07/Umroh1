@@ -1,6 +1,6 @@
 import Sidebar from "@/components/Sidebar/sidebar";
 import { ThemeProvider } from "next-themes";
-import { FaMoneyBillWave, FaUser } from "react-icons/fa";
+import { FaMoneyBillWave, FaUser, FaStar } from "react-icons/fa";
 import { MdOutlineFlipCameraAndroid } from "react-icons/md";
 import { RiCalendarScheduleFill } from "react-icons/ri";
 import { IoHomeSharp } from "react-icons/io5";
@@ -39,6 +39,11 @@ const Sidebar_list = [
         title: "Keberangkatan",
         link: "/keberangkatan",
         icon: <RiCalendarScheduleFill size={18} />,
+      },
+      {
+        title: "Testimoni",
+        link: "/testimoni",
+        icon: <FaStar size={18} />,
       },
       {
         title: "Profile Saya",

@@ -1,92 +1,52 @@
 "use client";
 import AdminContainer from "@/components/Container/adminContainer";
-import formatCurrency from "@/components/Currency/currency";
 import formatDate from "@/components/Date/formatDate";
 import { Label, Select, Spinner } from "flowbite-react";
-import { useSession } from "next-auth/react";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import PerlengkapanTable from "./perlengkapan";
 
 export default function Page() {
-  const [isPostData, setisPostData] = useState(false);
-  const [paket, setpaket] = useState(null);
-  const [onePaket, setonePaket] = useState(null);
-  const [display, setdisplay] = useState(null);
-  const session = useSession()
-
-  const router = useRouter()
+  const [paket, setPaket] = useState([]);
+  const [selectedId, setSelectedId] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
-      const res = await fetch(`/api/system/paket`);
-      const data = await res.json();
-      setpaket(data);
-      data.length != 0 && setonePaket(data[0]);
-
+      try {
+        const res = await fetch("/api/system/paket");
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : [];
+        setPaket(list);
+        if (list.length > 0) setSelectedId(list[0].id);
+      } catch {}
+      finally { setLoading(false); }
     };
     fetchData();
-  }, [isPostData]);
+  }, []);
 
-  const handleChange = (e) => {
-    setonePaket(e.value);
-  };
+  if (loading) return <AdminContainer><div className="flex justify-center py-10"><Spinner size="xl" /></div></AdminContainer>;
 
   return (
-    paket && onePaket ? (
-      <>
-        <AdminContainer>
-          <div className="grid grid-cols-3 gap-4">
-            <a href={onePaket.image} target="_blank" className="relative w-full h-auto border overflow-hidden bg-gray-100 col-span-1" >
-              <Image
-                src={onePaket.image}
-                alt={"Image" + onePaket.id}
-                fill
-                className="object-contain"
-              />
-            </a>
-            <div className=" space-y-3 p-6">
-              <div className="space-y-2">
-                <Label htmlFor="jenisPaket" value={"Jenis Paket"} />
-                <Select
-                  id="jenisPaket"
-                  name="jenisPaket"
-                  value={onePaket}
-                  onChange={handleChange}
-                  required
-                >
-                  {paket.map((option) => (
-                    <option key={option.id} value={option} className="capitalize" >
-                      {option.nama} {`(Keberangkatan ${formatDate(option.tglKeberangkatan)})`}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="jenisPaket" value={"Sisa Seat"} />
-                <p>{onePaket.seatTerisi}/{onePaket.totalSeat}</p>
-              </div>
-              <div>
-                <Label htmlFor="jenisPaket" value={"Keberangkatan"} />
-                <p>{formatDate(onePaket.tglKeberangkatan, "short")}</p>
-              </div>
-              <div>
-                <Label htmlFor="jenisPaket" value={"Harga"} />
-                <p>{formatCurrency(onePaket.harga)}</p>
-              </div>
-            </div>
-          </div>
+    <AdminContainer>
+      <h2 className="text-xl font-bold mb-4">Kelengkapan Atribut Jamaah</h2>
 
-        </AdminContainer>
-        <AdminContainer>
-         <PerlengkapanTable paketId={onePaket.id} />
-        </AdminContainer>
-      </>
-    ) : (
-      <AdminContainer>
-        <Spinner />
-      </AdminContainer>
-    )
-  )
+      {paket.length === 0 ? (
+        <p className="text-gray-400 text-sm">Belum ada paket umrah.</p>
+      ) : (
+        <>
+          <div className="mb-6 max-w-sm">
+            <Label value="Pilih Paket" />
+            <Select value={selectedId} onChange={(e) => setSelectedId(e.target.value)} className="mt-1">
+              {paket.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nama} — {formatDate(p.tanggalBerangkat, "short")}
+                </option>
+              ))}
+            </Select>
+          </div>
+          {selectedId && <PerlengkapanTable paketId={selectedId} />}
+        </>
+      )}
+    </AdminContainer>
+  );
 }

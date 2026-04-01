@@ -1,205 +1,257 @@
-"use client"
-import { useState, useEffect, useCallback } from "react"
-import { useRouter } from "next/navigation"
-import { useSession } from "next-auth/react"
-import { Card, Button, Badge, Alert } from "flowbite-react"
-import { FaCalendarAlt, FaUsers, FaMoneyBillWave, FaFileUpload } from "react-icons/fa"
-import Image from "next/image"
+"use client";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { Button, Badge, Alert, Progress } from "flowbite-react";
+import Image from "next/image";
+import {
+  FaMoneyBillWave,
+  FaUser,
+  FaHotel,
+  FaRegCalendarAlt,
+} from "react-icons/fa";
+import { MdAccessTime } from "react-icons/md";
+import { PiAirplaneTiltFill } from "react-icons/pi";
+import { FaStar } from "react-icons/fa6";
+import { MdOutlineFlipCameraAndroid } from "react-icons/md";
+import { RiCalendarScheduleFill } from "react-icons/ri";
+import formatCurrency from "@/components/Currency/currency";
+import formatDate from "@/components/Date/formatDate";
+
+const hitungHari = (start, end) => {
+  const diffTime = Math.abs(new Date(end) - new Date(start));
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+};
 
 export default function JamaahDashboard() {
-  const router = useRouter()
-  const { data: session } = useSession()
-  const [paketList, setPaketList] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
-
-  const fetchPaket = useCallback(async () => {
-    console.log("🚀 Starting fetchPaket...")
-    setLoading(true)
-    setError("")
-    
-    try {
-      console.log("📡 Making API call to /api/public/paket")
-      const res = await fetch("/api/public/paket", {
-        method: "GET",
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache'
-        },
-        cache: 'no-store'
-      })
-      
-      console.log("📊 Response status:", res.status)
-      console.log("📊 Response headers:", Object.fromEntries(res.headers.entries()))
-      
-      if (!res.ok) {
-        const errorText = await res.text()
-        console.error("❌ API Error Response:", errorText)
-        throw new Error(`API Error: ${res.status} - ${errorText}`)
-      }
-      
-      const data = await res.json()
-      console.log("✅ API Response Data:", data)
-      console.log("📦 Paket count:", data.paket?.length || 0)
-      
-      setPaketList(data.paket || [])
-      console.log("🎯 Paket list updated successfully")
-      
-    } catch (error) {
-      console.error("💥 Fetch Error:", error)
-      setError(`Gagal memuat data paket: ${error.message}`)
-    } finally {
-      setLoading(false)
-      console.log("🏁 Fetch completed")
-    }
-  }, [])
+  const router = useRouter();
+  const { data: session } = useSession();
+  const [paketList, setPaketList] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    if (session) {
-      fetchPaket()
-    }
-  }, [session, fetchPaket])
-
-  const formatRupiah = (amount) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR'
-    }).format(amount)
-  }
-
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    })
-  }
+    if (!session) return;
+    const fetchPaket = async () => {
+      try {
+        const res = await fetch("/api/public/paket");
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Gagal memuat paket");
+        setPaketList(data.paket || []);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPaket();
+  }, [session]);
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-6 rounded-lg">
-        <h1 className="text-3xl font-bold mb-2">Dashboard Jamaah</h1>
-        <p className="text-blue-100">Selamat datang, {session?.user?.nama || "Jamaah"}!</p>
+      <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-6 rounded-xl">
+        <h1 className="text-2xl md:text-3xl font-bold mb-1">Dashboard Jamaah</h1>
+        <p className="text-blue-100 text-sm">
+          Selamat datang, {session?.user?.nama || "Jamaah"}!
+        </p>
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => router.push("/transaksi")}>
-          <div className="flex flex-col items-center p-4">
-            <FaCalendarAlt className="text-3xl text-blue-600 mb-2" />
-            <h3 className="font-semibold">Transaksi</h3>
-            <p className="text-sm text-gray-600">Kelola pemesanan</p>
-          </div>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => router.push("/pembayaran")}>
-          <div className="flex flex-col items-center p-4">
-            <FaMoneyBillWave className="text-3xl text-green-600 mb-2" />
-            <h3 className="font-semibold">Pembayaran</h3>
-            <p className="text-sm text-gray-600">DP & Cicilan</p>
-          </div>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => router.push("/keberangkatan")}>
-          <div className="flex flex-col items-center p-4">
-            <FaUsers className="text-3xl text-purple-600 mb-2" />
-            <h3 className="font-semibold">Keberangkatan</h3>
-            <p className="text-sm text-gray-600">Jadwal & Itinerary</p>
-          </div>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => router.push("/profile-saya")}>
-          <div className="flex flex-col items-center p-4">
-            <FaFileUpload className="text-3xl text-orange-600 mb-2" />
-            <h3 className="font-semibold">Profile</h3>
-            <p className="text-sm text-gray-600">Dokumen & Data</p>
-          </div>
-        </Card>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          {
+            icon: <MdOutlineFlipCameraAndroid size={28} className="text-blue-600" />,
+            label: "Transaksi",
+            sub: "Kelola pemesanan",
+            href: "/jamaah/transaksi",
+          },
+          {
+            icon: <FaMoneyBillWave size={28} className="text-green-600" />,
+            label: "Pembayaran",
+            sub: "DP & Cicilan",
+            href: "/jamaah/pembayaran",
+          },
+          {
+            icon: <RiCalendarScheduleFill size={28} className="text-purple-600" />,
+            label: "Keberangkatan",
+            sub: "Jadwal & Itinerary",
+            href: "/jamaah/keberangkatan",
+          },
+          {
+            icon: <FaUser size={28} className="text-orange-600" />,
+            label: "Profile",
+            sub: "Data & Dokumen",
+            href: "/jamaah/profile-saya",
+          },
+        ].map((item, i) => (
+          <button
+            key={i}
+            onClick={() => router.push(item.href)}
+            className="bg-white border border-gray-100 rounded-xl p-4 flex flex-col items-center shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+          >
+            {item.icon}
+            <span className="font-semibold text-sm mt-2">{item.label}</span>
+            <span className="text-xs text-gray-500 mt-0.5">{item.sub}</span>
+          </button>
+        ))}
       </div>
 
-      {/* Paket Umrah Tersedia */}
+      {/* Paket Tersedia */}
       <div>
-        <h2 className="text-2xl font-bold mb-4">Paket Umrah Tersedia</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold">Paket Umrah Tersedia</h2>
+          <a href="/paket" className="text-sm text-blue-600 hover:underline">
+            Lihat di halaman publik →
+          </a>
+        </div>
+
         {error && <Alert color="failure" className="mb-4">{error}</Alert>}
+
         {loading ? (
-          <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-2 text-gray-600">Memuat paket...</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="rounded-xl border border-gray-200 animate-pulse">
+                <div className="h-48 bg-gray-200 rounded-t-xl" />
+                <div className="p-4 space-y-3">
+                  <div className="h-4 bg-gray-200 rounded w-3/4" />
+                  <div className="h-3 bg-gray-200 rounded w-full" />
+                  <div className="h-3 bg-gray-200 rounded w-1/2" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : paketList.length === 0 ? (
-          <Card>
-            <div className="text-center py-8">
-              <p className="text-gray-600">Belum ada paket umrah tersedia</p>
-            </div>
-          </Card>
+          <div className="text-center py-16 text-gray-400 bg-white rounded-xl border">
+            Belum ada paket umrah tersedia saat ini.
+          </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             {paketList.map((paket) => (
-              <Card key={paket.id} className="hover:shadow-lg transition-shadow">
-                <div className="relative">
-                  <Image 
-                    src={paket.gambar} 
-                    alt={paket.nama}
-                    width={400}
-                    height={300}
-                    className="w-full h-48 object-cover rounded-t-lg"
-                  />
-                  <div className="absolute top-2 right-2 flex flex-col gap-1">
-                    <Badge color={paket.isAvailable ? "success" : "failure"}>
-                      {paket.kuotaTersedia} Kuota
+              <div
+                key={paket.id}
+                className="flex flex-col bg-white rounded-xl overflow-hidden shadow-md border border-gray-100 hover:shadow-lg transition-shadow duration-300"
+              >
+                {/* Gambar */}
+                <div className="relative h-48">
+                  {paket.gambar ? (
+                    <Image
+                      src={paket.gambar}
+                      alt={paket.nama}
+                      fill
+                      className="object-cover object-top"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400 text-sm">
+                      No Image
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/20 rounded-t-xl" />
+                  {/* Badge kuota */}
+                  <div className="absolute top-2 right-2">
+                    <Badge color={paket.isAvailable ? "success" : "failure"} size="sm">
+                      {paket.isAvailable ? `${paket.kuotaTersedia} Seat` : "Penuh"}
                     </Badge>
-                    {!paket.isAvailable && (
-                      <Badge color="failure" size="sm">
-                        Penuh
-                      </Badge>
-                    )}
-                    {paket.quotaUsage.percentage >= 80 && (
-                      <Badge color="warning" size="sm">
-                        {paket.quotaUsage.percentage}% Terisi
-                      </Badge>
-                    )}
                   </div>
                 </div>
-                
-                <div className="p-4">
-                  <h3 className="text-xl font-bold mb-2">{paket.nama}</h3>
-                  <p className="text-gray-600 text-sm mb-3 line-clamp-2">{paket.deskripsi}</p>
-                  
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Berangkat:</span>
-                      <span className="font-medium">{formatDate(paket.tanggalBerangkat)}</span>
-                    </div>
+
+                {/* Konten */}
+                <div className="px-4 py-4 flex flex-col flex-grow">
+                  <h3 className="font-bold text-lg mb-3 line-clamp-2 capitalize">
+                    {paket.nama}
+                  </h3>
+
+                  <div className="text-gray-600 text-sm space-y-2 mb-4">
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-600">Sisa Kuota:</span>
-                      <div className="text-right">
-                        <span className="font-medium">{paket.kuotaTersedia} orang</span>
-                        <div className="text-xs text-gray-500">
-                          {paket.quotaUsage.used}/{paket.quotaUsage.total} ({paket.quotaUsage.percentage}%)
-                        </div>
+                      <div className="flex items-center gap-1.5">
+                        <FaRegCalendarAlt size={13} />
+                        <span>Keberangkatan</span>
                       </div>
+                      <span className="font-medium">
+                        {formatDate(paket.tanggalBerangkat, "short")}
+                      </span>
                     </div>
+
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-600">Harga:</span>
-                      <span className="text-lg font-bold text-green-600">{formatRupiah(paket.harga)}</span>
+                      <div className="flex items-center gap-1.5">
+                        <MdAccessTime size={14} />
+                        <span>Durasi</span>
+                      </div>
+                      <span className="font-medium">
+                        {hitungHari(paket.tanggalBerangkat, paket.tanggalPulang)} Hari
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-1.5">
+                        <PiAirplaneTiltFill size={14} />
+                        <span>Maskapai</span>
+                      </div>
+                      <span className="font-medium">
+                        {paket.penerbangan?.maskapai ?? "-"}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-1.5">
+                        <FaHotel size={13} />
+                        <span>Hotel</span>
+                      </div>
+                      <div className="flex">
+                        {[...Array(paket.hotel?.bintang || 0)].map((_, i) => (
+                          <FaStar key={i} className="text-yellow-400" size={13} />
+                        ))}
+                      </div>
                     </div>
                   </div>
 
-                  <Button 
-                    color={paket.isAvailable ? "blue" : "gray"} 
-                    className="w-full mt-4"
-                    onClick={() => router.push(`/transaksi?pesan=${paket.id}`)}
-                    disabled={!paket.isAvailable}
-                  >
-                    {paket.isAvailable ? "Pesan Sekarang" : "Kuota Penuh"}
-                  </Button>
+                  <div className="mt-auto space-y-3">
+                    <div className="text-sm text-gray-600">
+                      Seat Terisi: {paket.quotaUsage?.used ?? 0} dari {paket.kuota}
+                      <Progress
+                        progress={Math.min(100, paket.quotaUsage?.percentage ?? 0)}
+                        size="sm"
+                        color={paket.quotaUsage?.percentage >= 80 ? "red" : "blue"}
+                        className="mt-1"
+                      />
+                    </div>
+
+                    <div className="text-sm text-gray-600">
+                      Harga Mulai:
+                      <div className="text-red-500 text-xl font-bold">
+                        {formatCurrency(paket.harga)}
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button
+                        href={`/paket/detail/${paket.id}`}
+                        color="light"
+                        size="sm"
+                        className="flex-1"
+                      >
+                        Detail
+                      </Button>
+                      <Button
+                        color={paket.isAvailable ? "blue" : "gray"}
+                        size="sm"
+                        className="flex-1"
+                        disabled={!paket.isAvailable}
+                        onClick={() =>
+                          paket.isAvailable &&
+                          router.push(`/jamaah/transaksi/pesan?pesan=${paket.id}`)
+                        }
+                      >
+                        {paket.isAvailable ? "Pesan" : "Penuh"}
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-              </Card>
+              </div>
             ))}
           </div>
         )}
       </div>
     </div>
-  )
+  );
 }

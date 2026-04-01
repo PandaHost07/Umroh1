@@ -5,47 +5,36 @@ import CountdownTimer from "./timer";
 import { useRouter } from "next/navigation";
 import { Spinner } from "flowbite-react";
 
-export default function page({ params }) {
-    const [mounted, setMounted] = useState(false);
-    const [data, setdata] = useState(null);
-    const [method, setmethod] = useState("POST");
+export default function Page({ params }) {
+  const [mounted, setMounted] = useState(false);
+  const [data, setData] = useState(null);
+  const router = useRouter();
 
-    const router = useRouter();
+  useEffect(() => {
+    const fetchOptions = async () => {
+      const { slug } = await params;
+      if (!slug) {
+        router.push("/jamaah/transaksi");
+        return;
+      }
+      const res = await fetch(`/api/system/order?id=${slug}`);
+      const resJson = await res.json();
+      if (!resJson || resJson.length === 0) {
+        router.push("/jamaah/transaksi");
+      } else {
+        setData(resJson);
+      }
+    };
+    setMounted(true);
+    fetchOptions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-    useEffect(() => {
-        const fetchOptions = async () => {
-            const { slug } = await params;
-            if (slug) {
-                const res = await fetch(
-                    `/api/system/order?id=${slug}`
-                );
-                const resJson = await res.json();
-                
-                if (resJson.length == 0) {
-                    router.push("/JAMAAH/transaksi");
-                }else{
-                    if (resJson && resJson.pembayaran?.length > 0){ setmethod("PATCH"); }
-                    
-                    setdata(resJson);
-                }
-            } else {
-                router.push("/JAMAAH/transaksi");
-            }
-        };
+  if (!mounted) return null;
 
-        setMounted(true);
-        fetchOptions();
-    }, []);
-
-    if (!mounted) {
-        return null;
-    }
-
-    return (
-        <div>
-            <AdminContainer>
-                {data ? (<CountdownTimer data={data} method={method} />) : (<Spinner />)}
-            </AdminContainer>
-        </div>
-    );
+  return (
+    <AdminContainer>
+      {data ? <CountdownTimer data={data} /> : <Spinner />}
+    </AdminContainer>
+  );
 }

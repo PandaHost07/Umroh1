@@ -13,27 +13,17 @@ export async function GET(req) {
     }
 
     const pendaftaranList = await prisma.pendaftaran.findMany({
-      where: {
-        akunEmail: email
-      },
+      where: { akunEmail: email },
       include: {
+        akun: { select: { nama: true, email: true } },
         paket: {
-          include: {
-            hotel: true,
-            penerbangan: true
-          }
+          include: { hotel: true, penerbangan: true },
         },
-        pembayaran: {
-          orderBy: {
-            created: 'asc'
-          }
-        },
+        pembayaran: { orderBy: { created: "asc" } },
         dokumen: true,
-        iternary: true
+        iternary: true,
       },
-      orderBy: {
-        created: 'desc'
-      }
+      orderBy: { created: "desc" },
     });
 
     return new Response(

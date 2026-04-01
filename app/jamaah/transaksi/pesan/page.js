@@ -76,7 +76,7 @@ export default function PemesananPage() {
       
       // Redirect ke halaman pembayaran setelah 2 detik
       setTimeout(() => {
-        router.push("/pembayaran");
+        router.push("/jamaah/pembayaran");
       }, 2000);
 
     } catch (err) {

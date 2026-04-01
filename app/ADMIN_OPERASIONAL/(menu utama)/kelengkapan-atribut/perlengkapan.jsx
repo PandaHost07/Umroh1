@@ -1,23 +1,23 @@
 "use client";
-
 import { useEffect, useState } from "react";
-import { Table, Spinner, Button } from "flowbite-react";
+import { Button, Spinner } from "flowbite-react";
 import { alertError, alertSuccess } from "@/components/Alert/alert";
 
-const PERLENGKAPAN_LIST = [
-  "KOPER",
-  "BAJU_IHRAM",
-  "MUKENA",
-  "NAMETAG",
-  "BUKU_DOA_DAN_PANDUAN",
-  "SYAL",
-  "TAS_TRAVEL",
-];
+const JENIS_LIST = ["KOPER", "BAJU_IHRAM", "MUKENA", "NAMETAG", "BUKU_DOA_DAN_PANDUAN", "SYAL", "TAS_TRAVEL"];
+const LABEL = {
+  KOPER: "Koper",
+  BAJU_IHRAM: "Baju Ihram",
+  MUKENA: "Mukena",
+  NAMETAG: "Nametag",
+  BUKU_DOA_DAN_PANDUAN: "Buku Doa",
+  SYAL: "Syal",
+  TAS_TRAVEL: "Tas Travel",
+};
 
 export default function PerlengkapanTable({ paketId }) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [updatingKeys, setUpdatingKeys] = useState(new Set());
+  const [updating, setUpdating] = useState(new Set());
 
   const fetchData = async () => {
     setLoading(true);
@@ -33,100 +33,74 @@ export default function PerlengkapanTable({ paketId }) {
     }
   };
 
-  const handleToggle = async (registrationId, perlengkapan, currentStatus) => {
-    const key = `${registrationId}-${perlengkapan}`;
-    setUpdatingKeys((prev) => new Set(prev.add(key)));
-
+  const handleToggle = async (pendaftaranId, jenis, currentStatus) => {
+    const key = `${pendaftaranId}-${jenis}`;
+    setUpdating((prev) => new Set(prev).add(key));
     try {
       const res = await fetch("/api/system/perlengkapan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          registrationId,
-          perlengkapan,
-          isReceived: !currentStatus,
-        }),
+        body: JSON.stringify({ pendaftaranId, jenis, sudahDiterima: !currentStatus }),
       });
-
       const result = await res.json();
-      if (!res.ok) throw new Error(result.error || "Gagal update status");
-
-      alertSuccess("Status perlengkapan diperbarui");
+      if (!res.ok) throw new Error(result.error || "Gagal update");
+      alertSuccess("Status diperbarui");
       await fetchData();
     } catch (err) {
       alertError(err.message);
     } finally {
-      setUpdatingKeys((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(key);
-        return newSet;
-      });
+      setUpdating((prev) => { const s = new Set(prev); s.delete(key); return s; });
     }
   };
 
-  useEffect(() => {
-    if (paketId) fetchData();
-  }, [paketId]);
+  useEffect(() => { if (paketId) fetchData(); }, [paketId]);
+
+  if (loading) return <div className="flex justify-center py-10"><Spinner size="xl" /></div>;
+  if (data.length === 0) return <p className="text-gray-400 text-sm text-center py-6">Belum ada jamaah terdaftar untuk paket ini.</p>;
 
   return (
-    <div className="overflow-x-auto mt-6 bg-white p-6 rounded shadow">
-      <h2 className="text-xl font-semibold mb-4">Distribusi Perlengkapan Jamaah</h2>
-
-      {loading ? (
-        <div className="flex justify-center py-10">
-          <Spinner size="xl" />
-        </div>
-      ) : (
-        <Table hoverable>
-          <Table.Head>
-            <Table.HeadCell>Nama</Table.HeadCell>
-            {PERLENGKAPAN_LIST.map((item) => (
-              <Table.HeadCell key={`head-${item}`}>{item}</Table.HeadCell>
-            ))}
-          </Table.Head>
-          <Table.Body>
-            {data.map((row, index) => {
-              const perlengkapanMap = {};
-              row.perlengkapan.forEach((p) => {
-                perlengkapanMap[p.perlengkapan] = p;
-              });
-
+    <div>
+      <h3 className="text-lg font-bold mb-4">Distribusi Perlengkapan Jamaah</h3>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm text-left border">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-3 py-2 border font-semibold">Nama Jamaah</th>
+              {JENIS_LIST.map((j) => (
+                <th key={j} className="px-3 py-2 border font-semibold text-center text-xs">{LABEL[j]}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((row) => {
+              const map = {};
+              row.perlengkapan.forEach((p) => { map[p.jenis] = p; });
               return (
-                <Table.Row key={`${row.registrationId}-${index}`}>
-                  <Table.Cell>{row.user.name}</Table.Cell>
-                  {PERLENGKAPAN_LIST.map((item) => {
-                    const itemData = perlengkapanMap[item];
-                    const received = itemData?.isReceived || false;
-                    const key = `${row.registrationId}-${item}`;
-                    const isUpdating = updatingKeys.has(key);
-
+                <tr key={row.pendaftaranId} className="border-b hover:bg-gray-50">
+                  <td className="px-3 py-2 border font-medium">{row.akun?.nama || row.akun?.email || "-"}</td>
+                  {JENIS_LIST.map((jenis) => {
+                    const item = map[jenis];
+                    const received = item?.sudahDiterima ?? false;
+                    const key = `${row.pendaftaranId}-${jenis}`;
                     return (
-                      <Table.Cell key={key}>
+                      <td key={jenis} className="px-3 py-2 border text-center">
                         <Button
                           size="xs"
                           color={received ? "success" : "gray"}
-                          onClick={() =>
-                            handleToggle(row.registrationId, item, received)
-                          }
-                          disabled={isUpdating}
+                          onClick={() => handleToggle(row.pendaftaranId, jenis, received)}
+                          disabled={updating.has(key)}
                         >
-                          {isUpdating ? (
-                            <Spinner size="sm" />
-                          ) : received ? (
-                            "✔️ Diterima"
-                          ) : (
-                            "❌ Belum"
-                          )}
+                          {updating.has(key) ? <Spinner size="sm" /> : received ? "✓" : "✗"}
                         </Button>
-                      </Table.Cell>
+                      </td>
                     );
                   })}
-                </Table.Row>
+                </tr>
               );
             })}
-          </Table.Body>
-        </Table>
-      )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

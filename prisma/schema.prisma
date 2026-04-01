@@ -125,6 +125,7 @@ model Pembayaran {
   pendaftaranId String
   jumlah        Int
   buktiUrl      String?
+  jenis         JenisPembayaran?
   status        StatusPembayaran @default(MENUNGGU)
   created       DateTime         @default(now())
 
@@ -237,6 +238,12 @@ enum StatusPembayaran {
   MENUNGGU
   TERVERIFIKASI
   DITOLAK
+}
+
+enum JenisPembayaran {
+  DP
+  CICILAN_1
+  PELUNASAN
 }
 
 enum JenisDokumen {

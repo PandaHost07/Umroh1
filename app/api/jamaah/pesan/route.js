@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+import { hitungKuotaTersedia, buildKuotaResponse } from "@/lib/kuota";
 
 export async function POST(req) {
   try {
@@ -12,18 +13,8 @@ export async function POST(req) {
       );
     }
 
-    // Cek apakah paket ada dan masih ada kuota
     const paket = await prisma.paket.findUnique({
       where: { id: paketId },
-      include: {
-        pendaftaran: {
-          where: {
-            status: {
-              in: ["MENUNGGU", "TERKONFIRMASI"]
-            }
-          }
-        }
-      }
     });
 
     if (!paket) {
@@ -40,7 +31,9 @@ export async function POST(req) {
       );
     }
 
-    if (paket.kuota <= paket.pendaftaran.length) {
+    // Validasi kuota secara dinamis
+    const used = await hitungKuotaTersedia(prisma, paketId);
+    if (used >= paket.kuota) {
       return new Response(
         JSON.stringify({ error: "Kuota paket sudah penuh" }),
         { status: 400 }
@@ -52,10 +45,8 @@ export async function POST(req) {
       where: {
         akunEmail,
         paketId,
-        status: {
-          in: ["MENUNGGU", "TERKONFIRMASI"]
-        }
-      }
+        status: { in: ["MENUNGGU", "TERKONFIRMASI"] },
+      },
     });
 
     if (existingPendaftaran) {
@@ -69,82 +60,58 @@ export async function POST(req) {
     const activePendaftaranCount = await prisma.pendaftaran.count({
       where: {
         akunEmail,
-        status: {
-          in: ["MENUNGGU", "TERKONFIRMASI"]
-        }
-      }
+        status: { in: ["MENUNGGU", "TERKONFIRMASI"] },
+      },
     });
 
     if (activePendaftaranCount >= 3) {
       return new Response(
-        JSON.stringify({ error: "Maksimal pemesanan aktif adalah 3 paket. Silakan batalkan salah satu pemesanan untuk memesan paket baru." }),
+        JSON.stringify({
+          error:
+            "Maksimal pemesanan aktif adalah 3 paket. Silakan batalkan salah satu pemesanan untuk memesan paket baru.",
+        }),
         { status: 400 }
       );
     }
 
-    // Buat pendaftaran baru dan kurangi kuota
+    // Buat pendaftaran baru (TANPA decrement kuota — kuota dihitung dinamis)
     const newPendaftaran = await prisma.pendaftaran.create({
       data: {
         akunEmail,
         paketId,
-        status: "MENUNGGU"
+        status: "MENUNGGU",
       },
       include: {
         paket: {
-          include: {
-            hotel: true,
-            penerbangan: true
-          }
-        }
-      }
-    });
-
-    // Kurangi kuota paket
-    await prisma.paket.update({
-      where: { id: paketId },
-      data: {
-        kuota: {
-          decrement: 1
-        }
-      }
+          include: { hotel: true, penerbangan: true },
+        },
+      },
     });
 
     // Buat jadwal pembayaran otomatis
     const dpAmount = Math.round(paket.harga * 0.3);
     const cicilan1Amount = Math.round(paket.harga * 0.3);
-    const cicilan2Amount = paket.harga - dpAmount - cicilan1Amount; // Sisa 40%
+    const pelunasanAmount = paket.harga - dpAmount - cicilan1Amount;
 
     await prisma.pembayaran.createMany({
       data: [
-        {
-          pendaftaranId: newPendaftaran.id,
-          jumlah: dpAmount,
-          status: "MENUNGGU",
-          jenis: "DP"
-        },
-        {
-          pendaftaranId: newPendaftaran.id,
-          jumlah: cicilan1Amount,
-          status: "MENUNGGU", 
-          jenis: "CICILAN_1"
-        },
-        {
-          pendaftaranId: newPendaftaran.id,
-          jumlah: cicilan2Amount,
-          status: "MENUNGGU",
-          jenis: "PELUNASAN"
-        }
-      ]
+        { pendaftaranId: newPendaftaran.id, jumlah: dpAmount, status: "MENUNGGU", jenis: "DP" },
+        { pendaftaranId: newPendaftaran.id, jumlah: cicilan1Amount, status: "MENUNGGU", jenis: "CICILAN_1" },
+        { pendaftaranId: newPendaftaran.id, jumlah: pelunasanAmount, status: "MENUNGGU", jenis: "PELUNASAN" },
+      ],
     });
 
+    const usedAfter = await hitungKuotaTersedia(prisma, paketId);
+    const kuotaInfo = buildKuotaResponse(paket, usedAfter);
+
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         message: "Pemesanan berhasil",
-        pendaftaran: newPendaftaran
+        pendaftaran: newPendaftaran,
+        ...kuotaInfo,
       }),
       { status: 201 }
     );
-
   } catch (error) {
     console.error("Error creating pendaftaran:", error);
     return new Response(

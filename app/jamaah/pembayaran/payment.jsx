@@ -31,8 +31,6 @@ export default function PaymentListPage({ registrationId, role = "JAMAAH" }) {
     try {
       const res = await fetch(`/api/system/pembayaran?pendaftaranId=${registrationId}`);
       const data = await res.json();
-      console.log(data);
-      
       if (!res.ok) throw new Error(data.error || "Gagal mengambil data pembayaran");
       setPayments(data);
     } catch (err) {
