@@ -1,6 +1,7 @@
 import "./globals.css";
 import { Poppins } from "next/font/google";
 import { Provider } from "./provider";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -21,6 +22,7 @@ export default function RootLayout({ children }) {
         className={`${poppins.className} bg-white text-black`}
       >
         <Provider>{children}</Provider>
+        <SpeedInsights />
       </body>
     </html>
   );
