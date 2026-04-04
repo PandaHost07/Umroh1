@@ -32,8 +32,13 @@ export async function GET(req) {
       });
     }
 
+    // Filter by paketId jika ada
+    const paketId = searchParams.get("paketId");
+    const whereClause = paketId ? { paketId } : {};
+
     // Admin keuangan & operasional bisa lihat semua
     const all = await prisma.pendaftaran.findMany({
+      where: whereClause,
       orderBy: { created: "desc" },
       include: includeOptions,
     });

@@ -6,11 +6,20 @@ import { Label, Select, Spinner, Badge } from "flowbite-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import AnnouncementPage from "./pengumuman";
+import { FaUsers, FaUser } from "react-icons/fa";
+
+const STATUS_COLOR = {
+  MENUNGGU: "warning",
+  TERKONFIRMASI: "success",
+  TIDAK_TERKONFIRMASI: "failure",
+};
 
 export default function Page() {
   const [paket, setPaket] = useState([]);
   const [selectedId, setSelectedId] = useState("");
   const [loading, setLoading] = useState(true);
+  const [jamaahList, setJamaahList] = useState([]);
+  const [loadingJamaah, setLoadingJamaah] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -25,6 +34,24 @@ export default function Page() {
     };
     fetchData();
   }, []);
+
+  // Fetch daftar jamaah saat paket berubah
+  useEffect(() => {
+    if (!selectedId) return;
+    const fetchJamaah = async () => {
+      setLoadingJamaah(true);
+      try {
+        const res = await fetch(`/api/system/order?paketId=${selectedId}`);
+        const data = await res.json();
+        setJamaahList(Array.isArray(data) ? data : []);
+      } catch {
+        setJamaahList([]);
+      } finally {
+        setLoadingJamaah(false);
+      }
+    };
+    fetchJamaah();
+  }, [selectedId]);
 
   const onePaket = paket.find((p) => p.id === selectedId);
   const terisi = onePaket?.pendaftaran?.length ?? 0;
@@ -53,11 +80,7 @@ export default function Page() {
           <div className="space-y-3 col-span-2">
             <div>
               <Label value="Pilih Paket" />
-              <Select
-                value={selectedId}
-                onChange={(e) => setSelectedId(e.target.value)}
-                className="mt-1"
-              >
+              <Select value={selectedId} onChange={(e) => setSelectedId(e.target.value)} className="mt-1">
                 {paket.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.nama} — Berangkat {formatDate(p.tanggalBerangkat, "short")}
@@ -96,6 +119,63 @@ export default function Page() {
             )}
           </div>
         </div>
+      </AdminContainer>
+
+      {/* Daftar Jamaah yang Berangkat */}
+      <AdminContainer>
+        <div className="flex items-center gap-2 mb-4">
+          <FaUsers className="text-blue-600" size={20} />
+          <h3 className="text-lg font-bold">Daftar Jamaah Berangkat</h3>
+          <span className="ml-auto text-sm text-gray-500">
+            {jamaahList.filter(j => j.status !== "TIDAK_TERKONFIRMASI").length} jamaah
+          </span>
+        </div>
+
+        {loadingJamaah ? (
+          <div className="flex justify-center py-8"><Spinner size="lg" /></div>
+        ) : jamaahList.length === 0 ? (
+          <div className="text-center py-8 text-gray-400">
+            <FaUsers size={40} className="mx-auto mb-2 opacity-30" />
+            <p>Belum ada jamaah yang mendaftar untuk paket ini.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  {["No", "Nama Jamaah", "Email", "Telepon", "Status Pendaftaran", "Tgl Daftar"].map(h => (
+                    <th key={h} className="px-4 py-2.5 font-semibold text-gray-600">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {jamaahList.map((j, i) => (
+                  <tr key={j.id} className={`border-b hover:bg-gray-50 ${j.status === "TIDAK_TERKONFIRMASI" ? "opacity-50" : ""}`}>
+                    <td className="px-4 py-2.5">{i + 1}</td>
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                          {j.akun?.gambar ? (
+                            <Image src={j.akun.gambar} alt={j.akun.nama} width={32} height={32} className="rounded-full object-cover" />
+                          ) : (
+                            <FaUser className="text-blue-400" size={14} />
+                          )}
+                        </div>
+                        <span className="font-medium">{j.akun?.nama || "-"}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-2.5 text-gray-500">{j.akunEmail}</td>
+                    <td className="px-4 py-2.5">{j.akun?.telepon || "-"}</td>
+                    <td className="px-4 py-2.5">
+                      <Badge color={STATUS_COLOR[j.status] ?? "gray"} size="sm">{j.status}</Badge>
+                    </td>
+                    <td className="px-4 py-2.5 text-gray-500">{formatDate(j.created, "short")}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </AdminContainer>
 
       {/* Pengumuman */}
