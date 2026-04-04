@@ -55,10 +55,10 @@ export default function Page({ params }) {
     const fetchPaket = async () => {
       const { slug } = await params;
       if (!slug) return;
-      const id = slug;
 
       try {
-        const res = await fetch(`/api/system/paket?id=${id}`);
+        // Gunakan public API yang sudah hitung kuota real-time
+        const res = await fetch(`/api/public/paket/${slug}`);
         const resJson = await res.json();
         if (res.ok) {
           setPaket(resJson);
@@ -86,8 +86,7 @@ export default function Page({ params }) {
     e.preventDefault();
     if (!paket || !data) return;
 
-    const jumlahTerdaftar = paket.registrasi?.length || 0;
-    if (jumlahTerdaftar >= paket.kuota) {
+    if (!paket.isAvailable) {
       alertError("Maaf, seat sudah penuh.");
       return;
     }
@@ -95,11 +94,11 @@ export default function Page({ params }) {
     try {
       setLoadingSubmit(true);
 
-      const res = await fetch("/api/system/order", {
+      const res = await fetch("/api/jamaah/pesan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: data.user.email,
+          akunEmail: data.user.email,
           paketId: paket.id,
         }),
       });
@@ -109,16 +108,9 @@ export default function Page({ params }) {
       if (!res.ok || result?.error) {
         alertError(result.error || "Gagal memesan paket");
       } else {
-        alertSuccess("Paket berhasil dipesan!");
+        alertSuccess("Paket berhasil dipesan! Silakan lanjutkan ke pembayaran.");
         closeModal();
-
-        if (data.user.role === "JAMAAH") {
-          router.push(`/JAMAAH/transaksi/${result.id}`);
-        } else if (data.user.role === "ADMIN_KEUANGAN") {
-          router.push(`/ADMIN_KEUANGAN/pembayaran/${result.id}`);
-        } else {
-          router.push(`/ADMIN_OPERASIONAL`);
-        }
+        setTimeout(() => router.push("/jamaah/pembayaran"), 1500);
       }
     } catch {
       alertError("Terjadi kesalahan saat memesan");
@@ -220,27 +212,41 @@ export default function Page({ params }) {
                 </div>
 
                 <div className="mb-3">
-                  <div className="text-sm">Seat Terisi</div>
-                  <div className="text-xl p-1">
-                    {paket.registrasi?.length || 0} / {paket.kuota}
+                  <div className="text-sm font-medium text-gray-600">Seat Tersedia</div>
+                  <div className="mt-1">
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-gray-500">Terisi: <span className="font-semibold text-gray-800">{paket.quotaUsage?.used ?? 0}</span></span>
+                      <span className="text-gray-500">Total: <span className="font-semibold text-gray-800">{paket.kuota}</span></span>
+                    </div>
                     <Progress
-                      progress={((paket.registrasi?.length || 0) / paket.kuota) * 100}
+                      progress={Math.min(100, paket.quotaUsage?.percentage ?? 0)}
                       size="sm"
+                      color={paket.quotaUsage?.percentage >= 80 ? "red" : paket.quotaUsage?.percentage >= 50 ? "yellow" : "blue"}
                     />
+                    <div className="mt-1.5 text-center">
+                      {paket.isAvailable ? (
+                        <span className="text-green-600 font-semibold text-sm">✓ {paket.kuotaTersedia} seat tersedia</span>
+                      ) : (
+                        <span className="text-red-600 font-semibold text-sm">✗ Seat penuh</span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                <div className="mt-10">
-                  <Button
-                    onClick={() =>
-                      status === "authenticated"
-                        ? openModal()
-                        : router.push("/login")
-                    }
-                    className="w-full"
-                  >
-                    Pesan Sekarang
-                  </Button>
+                <div className="mt-4">
+                  {paket.isAvailable ? (
+                    <Button
+                      onClick={() => status === "authenticated" ? openModal() : router.push("/login")}
+                      className="w-full"
+                      color="blue"
+                    >
+                      Pesan Sekarang
+                    </Button>
+                  ) : (
+                    <Button disabled className="w-full" color="gray">
+                      Seat Penuh
+                    </Button>
+                  )}
                 </div>
               </div>
 
