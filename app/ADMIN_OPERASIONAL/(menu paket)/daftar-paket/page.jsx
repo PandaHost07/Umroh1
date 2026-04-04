@@ -26,6 +26,7 @@ export default function PaketList() {
         const terisi = p.pendaftaran
           ? p.pendaftaran.filter(d => ["MENUNGGU", "TERKONFIRMASI"].includes(d.status)).length
           : 0;
+        const sudahLewat = new Date(p.tanggalBerangkat) < new Date();
         return {
           id: p.id,
           gambar: p.gambar,
@@ -33,9 +34,9 @@ export default function PaketList() {
           harga: p.harga,
           kuota: p.kuota,
           terisi,
-          isPenuh: terisi >= p.kuota,
           keberangkatan: p.tanggalBerangkat,
-          status: p.status,
+          // Status gabungan: tampilkan info yang relevan
+          status: sudahLewat ? "KEDALUWARSA" : terisi >= p.kuota ? "PENUH" : p.status,
         };
       });
       setPakets(mapped);
