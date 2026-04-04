@@ -14,7 +14,9 @@ function CountdownTimer({ targetDate }) {
   useEffect(() => {
     setMounted(true);
     const calc = () => {
-      const diff = new Date(targetDate) - new Date();
+      const target = new Date(targetDate);
+      const now = new Date();
+      const diff = target.getTime() - now.getTime();
       if (diff <= 0) return { hari: 0, jam: 0, menit: 0, detik: 0, lewat: true };
       return {
         hari: Math.floor(diff / 86400000),
@@ -33,8 +35,9 @@ function CountdownTimer({ targetDate }) {
 
   if (timeLeft.lewat) {
     return (
-      <div className="bg-green-100 border border-green-300 rounded-xl p-4 text-center">
-        <p className="text-green-700 font-bold text-lg">✈️ Sudah Berangkat!</p>
+      <div className="bg-gray-100 border border-gray-300 rounded-xl p-4 text-center">
+        <p className="text-gray-600 font-semibold text-lg">✈️ Jadwal keberangkatan telah berlalu</p>
+        <p className="text-xs text-gray-400 mt-1">Tanggal keberangkatan sudah terlewati</p>
       </div>
     );
   }

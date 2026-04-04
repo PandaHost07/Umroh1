@@ -1,11 +1,11 @@
-import { put } from '@vercel/blob';
+import { put } from "@vercel/blob";
 import prisma from "@/lib/prisma";
 
 export async function POST(req) {
   try {
     const formData = await req.formData();
-    const dokumen = formData.get('dokumen');
-    const dokumenId = formData.get('dokumenId');
+    const dokumen = formData.get("dokumen");
+    const dokumenId = formData.get("dokumenId");
 
     if (!dokumen || !dokumenId) {
       return new Response(
@@ -14,11 +14,10 @@ export async function POST(req) {
       );
     }
 
-    // Validasi file
     const bytes = await dokumen.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    if (buffer.length > 5 * 1024 * 1024) { // 5MB
+    if (buffer.length > 5 * 1024 * 1024) {
       return new Response(
         JSON.stringify({ error: "Ukuran file maksimal 5MB" }),
         { status: 400 }
@@ -26,50 +25,65 @@ export async function POST(req) {
     }
 
     // Upload ke Vercel Blob
-    const blob = await put(`dokumen-jamaah/${Date.now()}-${dokumen.name}`, buffer, {
-      access: 'public',
+    const fileName = dokumen.name || `dokumen-${Date.now()}`;
+    const blob = await put(`dokumen-jamaah/${Date.now()}-${fileName}`, buffer, {
+      access: "public",
       token: process.env.BLOB_READ_WRITE_TOKEN,
     });
 
-    // Update atau buat dokumen baru
     let updatedDokumen;
-    
-    // Cek apakah dokumenId adalah ID existing atau data baru
-    if (dokumenId.length > 20) { // Existing ID (cuid)
+
+    // Format baru: "jenis|pendaftaranId|akunEmail" (dipisah pipe)
+    if (dokumenId.includes("|")) {
+      const parts = dokumenId.split("|");
+      const jenis = parts[0];
+      const pendaftaranId = parts[1];
+      const akunEmail = parts[2];
+
+      if (!jenis || !pendaftaranId || !akunEmail) {
+        return new Response(
+          JSON.stringify({ error: "Format dokumenId tidak valid" }),
+          { status: 400 }
+        );
+      }
+
+      // Cek apakah sudah ada dokumen dengan jenis yang sama untuk pendaftaran ini
+      const existing = await prisma.dokumen.findFirst({
+        where: { pendaftaranId, jenis },
+      });
+
+      if (existing) {
+        updatedDokumen = await prisma.dokumen.update({
+          where: { id: existing.id },
+          data: { url: blob.url, status: "MENUNGGU" },
+        });
+      } else {
+        updatedDokumen = await prisma.dokumen.create({
+          data: { pendaftaranId, akunEmail, jenis, url: blob.url, status: "MENUNGGU" },
+        });
+      }
+    } else {
+      // ID dokumen existing (update)
+      const existing = await prisma.dokumen.findUnique({ where: { id: dokumenId } });
+      if (!existing) {
+        return new Response(
+          JSON.stringify({ error: "Dokumen tidak ditemukan" }),
+          { status: 404 }
+        );
+      }
       updatedDokumen = await prisma.dokumen.update({
         where: { id: dokumenId },
-        data: {
-          url: blob.url,
-          status: "MENUNGGU"
-        }
-      });
-    } else {
-      // Data baru dari frontend (isNew: true)
-      const [jenis, pendaftaranId, akunEmail] = dokumenId.split('|');
-      
-      updatedDokumen = await prisma.dokumen.create({
-        data: {
-          pendaftaranId,
-          akunEmail,
-          jenis,
-          url: blob.url,
-          status: "MENUNGGU"
-        }
+        data: { url: blob.url, status: "MENUNGGU" },
       });
     }
 
     return new Response(
-      JSON.stringify({ 
-        message: "Dokumen berhasil diupload",
-        dokumen: updatedDokumen
-      }),
+      JSON.stringify({ message: "Dokumen berhasil diupload", dokumen: updatedDokumen }),
       { status: 200 }
     );
-
   } catch (error) {
-    console.error("Error uploading dokumen:", error);
     return new Response(
-      JSON.stringify({ error: "Gagal upload dokumen" }),
+      JSON.stringify({ error: "Gagal upload dokumen: " + error.message }),
       { status: 500 }
     );
   }

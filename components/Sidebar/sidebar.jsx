@@ -156,15 +156,16 @@ export default function Sidebar({ children, list = [], role = "admin" }) {
                   alt={profile.email}
                   width={45}
                   height={45}
-                  className="object-cover w-full h-full border-black border-[1px] rounded-full"
+                  className="object-cover border-black border-[1px] rounded-full shrink-0"
+                  style={{ width: "45px", height: "45px", minWidth: "45px", minHeight: "45px" }}
                 />
               ) : (
-                <div className="w-[45px] h-[45px] bg-gray-200 rounded-full flex items-center justify-center border border-gray-400 overflow-hidden">
+                <div className="w-[45px] h-[45px] min-w-[45px] min-h-[45px] bg-gray-200 rounded-full flex items-center justify-center border border-gray-400 overflow-hidden shrink-0">
                   <FaUser className="text-gray-400 w-full h-full mt-2" />
                 </div>
               )
             ) : (
-              <Skeleton.Circle className="mx-auto" />
+              <Skeleton.Circle className="mx-auto shrink-0" />
             )}
           </button>
           {dropdown && (
