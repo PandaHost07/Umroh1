@@ -7,6 +7,7 @@ import formatDate from "@/components/Date/formatDate";
 import { alertSuccess, alertError } from "@/components/Alert/alert";
 import { HiOutlineCreditCard, HiEye } from "react-icons/hi";
 import Image from "next/image";
+import Swal from "sweetalert2";
 
 const STATUS_COLOR = { MENUNGGU: "warning", TERVERIFIKASI: "success", DITOLAK: "failure" };
 const JENIS_LABEL = { DP: "DP (30%)", CICILAN_1: "Cicilan (30%)", PELUNASAN: "Pelunasan (40%)" };
@@ -35,7 +36,20 @@ export default function PembayaranAdminPage() {
   useEffect(() => { fetchData(); }, []);
 
   const handleValidasi = async (id, status) => {
-    if (!confirm(`${status === "TERVERIFIKASI" ? "Verifikasi" : "Tolak"} pembayaran ini?`)) return;
+    const isVerifikasi = status === "TERVERIFIKASI";
+    const result = await Swal.fire({
+      title: isVerifikasi ? "Verifikasi Pembayaran?" : "Tolak Pembayaran?",
+      text: isVerifikasi
+        ? "Pembayaran akan ditandai sebagai terverifikasi."
+        : "Pembayaran akan ditolak dan jamaah perlu upload ulang.",
+      icon: isVerifikasi ? "success" : "warning",
+      showCancelButton: true,
+      confirmButtonColor: isVerifikasi ? "#16a34a" : "#d33",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: isVerifikasi ? "Ya, Verifikasi" : "Ya, Tolak",
+      cancelButtonText: "Batal",
+    });
+    if (!result.isConfirmed) return;
     setValidating(id);
     try {
       const res = await fetch("/api/system/pembayaran", {
@@ -45,7 +59,7 @@ export default function PembayaranAdminPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Gagal");
-      alertSuccess(status === "TERVERIFIKASI" ? "Pembayaran diverifikasi" : "Pembayaran ditolak");
+      alertSuccess(isVerifikasi ? "Pembayaran berhasil diverifikasi!" : "Pembayaran ditolak.");
       fetchData();
     } catch (err) { alertError(err.message); }
     finally { setValidating(null); }

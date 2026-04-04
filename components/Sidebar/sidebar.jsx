@@ -11,6 +11,7 @@ import BreadcrumbComponent from "../Breadcumb/breadcumb";
 import Image from "next/image";
 import { useTheme } from "next-themes";
 import Skeleton from "../Skeleton/skeleton";
+import NotifBadgePembayaran from "./notifBadge";
 
 export default function Sidebar({ children, list = [], role = "admin" }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -90,18 +91,22 @@ export default function Sidebar({ children, list = [], role = "admin" }) {
                   </span>
                   <ul className="space-y-1">
                     {items.list.map((e, i) => {
+                      const isActive = (pathname.split("/")[2] || "") === e.link.replace("/", "");
                       return (
                         <li key={i}>
                           <a
                             href={"/" + role + e.link}
-                            className={`flex items-center p-2 text-sm rounded-lg text-gray-900 group ${(pathname.split("/")[2] || "") ==
-                              e.link.replace("/", "")
+                            className={`flex items-center p-2 text-sm rounded-lg text-gray-900 group ${isActive
                               ? "bg-prime text-white dark:bg-gray6 dark:text-dark-prime"
                               : "dark:text-white-prime hover:bg-prime hover:text-white-prime dark:hover:bg-gray6 dark:hover:text-dark-prime "
                               }`}
                           >
                             <div className="me-2">{e.icon}</div>
-                            <span className=" w-full">{e.title}</span>
+                            <span className="flex-1">{e.title}</span>
+                            {/* Badge notifikasi pembayaran untuk admin keuangan */}
+                            {role === "ADMIN_KEUANGAN" && e.link === "/pembayaran" && (
+                              <NotifBadgePembayaran />
+                            )}
                           </a>
                         </li>
                       );
