@@ -75,6 +75,18 @@ function PaketComponentPage() {
                     </div>
                   )}
                   <div className="absolute inset-0 bg-black opacity-30 rounded-t-lg"></div>
+                  {/* Badge kuota */}
+                  <div className="absolute top-2 right-2">
+                    {paket.isAvailable ? (
+                      <span className="bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                        {paket.kuotaTersedia} Seat
+                      </span>
+                    ) : (
+                      <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                        Penuh
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="px-4 py-5 flex flex-col flex-grow">

@@ -18,8 +18,9 @@ export async function GET(req, { params }) {
     }
 
     const used = await hitungKuotaTersedia(prisma, id);
+    const sudahLewat = new Date(paket.tanggalBerangkat) < new Date();
     return new Response(
-      JSON.stringify({ ...paket, ...buildKuotaResponse(paket, used) }),
+      JSON.stringify({ ...paket, ...buildKuotaResponse(paket, used), sudahLewat }),
       { status: 200, headers: { "Content-Type": "application/json" } }
     );
   } catch (error) {

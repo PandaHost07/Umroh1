@@ -211,6 +211,13 @@ export default function Page({ params }) {
                   </div>
                 </div>
 
+                {/* Badge status paket */}
+                {paket.sudahLewat && (
+                  <div className="mb-3 p-3 bg-gray-100 border border-gray-300 rounded-lg text-center">
+                    <span className="text-gray-600 font-semibold text-sm">⏰ Paket ini sudah tidak tersedia — tanggal keberangkatan telah berlalu</span>
+                  </div>
+                )}
+
                 <div className="mb-3">
                   <div className="text-sm font-medium text-gray-600">Seat Tersedia</div>
                   <div className="mt-1">
@@ -224,7 +231,9 @@ export default function Page({ params }) {
                       color={paket.quotaUsage?.percentage >= 80 ? "red" : paket.quotaUsage?.percentage >= 50 ? "yellow" : "blue"}
                     />
                     <div className="mt-1.5 text-center">
-                      {paket.isAvailable ? (
+                      {paket.sudahLewat ? (
+                        <span className="text-gray-500 font-semibold text-sm">⏰ Kedaluwarsa</span>
+                      ) : paket.isAvailable ? (
                         <span className="text-green-600 font-semibold text-sm">✓ {paket.kuotaTersedia} seat tersedia</span>
                       ) : (
                         <span className="text-red-600 font-semibold text-sm">✗ Seat penuh</span>
@@ -234,7 +243,11 @@ export default function Page({ params }) {
                 </div>
 
                 <div className="mt-4">
-                  {paket.isAvailable ? (
+                  {paket.sudahLewat ? (
+                    <Button disabled className="w-full" color="gray">
+                      Tidak Tersedia
+                    </Button>
+                  ) : paket.isAvailable ? (
                     <Button
                       onClick={() => status === "authenticated" ? openModal() : router.push("/login")}
                       className="w-full"

@@ -31,6 +31,14 @@ export async function POST(req) {
       );
     }
 
+    // Validasi tanggal — paket yang sudah lewat tidak bisa dipesan
+    if (new Date(paket.tanggalBerangkat) < new Date()) {
+      return new Response(
+        JSON.stringify({ error: "Paket ini sudah tidak tersedia karena tanggal keberangkatan telah berlalu." }),
+        { status: 400 }
+      );
+    }
+
     // Validasi kuota secara dinamis
     const used = await hitungKuotaTersedia(prisma, paketId);
     if (used >= paket.kuota) {

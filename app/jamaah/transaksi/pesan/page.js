@@ -39,7 +39,14 @@ export default function PemesananPage() {
       if (!res.ok) {
         throw new Error(data.error || "Gagal memuat data paket");
       }
-      
+
+      // Validasi tanggal di frontend
+      if (new Date(data.tanggalBerangkat) < new Date()) {
+        setError("Paket ini sudah tidak tersedia karena tanggal keberangkatan telah berlalu.");
+        setLoading(false);
+        return;
+      }
+
       setPaket(data);
     } catch (err) {
       setError(err.message);

@@ -10,7 +10,10 @@ export async function GET() {
     });
 
     const paketList = await prisma.paket.findMany({
-      where: { status: "AKTIF" },
+      where: {
+        status: "AKTIF",
+        tanggalBerangkat: { gt: new Date() }, // hanya paket yang belum berangkat
+      },
       include: { hotel: true, penerbangan: true },
       orderBy: { tanggalBerangkat: "asc" },
     });
