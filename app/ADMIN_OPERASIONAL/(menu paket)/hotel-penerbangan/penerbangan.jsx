@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Button, Modal, Label, TextInput, Spinner } from "flowbite-react";
 import { alertSuccess, alertError } from "@/components/Alert/alert";
 import { FaEdit, FaTrash } from "react-icons/fa";
+import Swal from "sweetalert2";
 
 const EMPTY = { maskapai: "", bandaraBerangkat: "Raden Intan Lampung", bandaraTiba: "", waktuBerangkat: "", waktuTiba: "" };
 
@@ -38,7 +39,17 @@ export default function FlightPage() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Hapus penerbangan ini?")) return;
+    const result = await Swal.fire({
+      title: "Hapus Penerbangan?",
+      text: "Data penerbangan ini akan dihapus permanen.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Ya, Hapus",
+      cancelButtonText: "Batal",
+    });
+    if (!result.isConfirmed) return;
     try {
       const res = await fetch(`/api/system/delete?model=penerbangan&id=${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Gagal menghapus");

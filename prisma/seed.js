@@ -60,8 +60,8 @@ async function main() {
       facebook: "",
       tiktok: "",
       ig: "ada.tourtravel",
-      whatssapp: "0895330731972",
-      telp: "0895330731972",
+      whatssapp: "0857252255159",
+      telp: "0857252255159",
       rekening: "8905637289 a.n Andi Wahyudi",
       deskripsi: `<p>Perusahaan kami berdiri secara resmi pada Tahun 2012 dengan nama Erahajj Indonesia. Kami adalah perusahaan Travel professional telah 10 tahun lebih berkecimpung di dunia haji dan umrah</p>
                   <p>Kami adalah Perusahaan yang bergerak di bidang Jasa Umrah & Haji, Provider visa, Land Arrangement, Paket Umrah Plus, Paket Haji Furoda dan Paket Haji Khusus.</p>`,

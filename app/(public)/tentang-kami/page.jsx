@@ -10,7 +10,7 @@ const perusahaan = {
   jam: "08.00 - 16.00 WIB",
   lokasi: "Jl. ZA. Pagar Alam No.46b, Labuhan Ratu, Kec. Kedaton, Kota Bandar Lampung, Lampung",
   email: "adhatourtravel27@gmail.com",
-  whatssapp: "0895330731972",
+  whatssapp: "0857252255159",
   maps: "https://maps.app.goo.gl/wbocDg4mpHjrH2ui9",
   embededMaps: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3971.7747806265825!2d105.30558957408584!3d-5.45112005435948!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e40d954102c6f09%3A0x58a52ab9decc2e25!2sAda%20Tour%20%26%20Travel%20Mitra%20Resmi!5e0!3m2!1sid!2sid!4v1745849831989!5m2!1sid!2sid",
   deskripsi: `<p>Perusahaan kami berdiri secara resmi pada Tahun 2012 dengan nama Erahajj Indonesia. Kami adalah perusahaan Travel professional telah 10 tahun lebih berpengalaman di dunia haji dan umrah.</p><p>Kami adalah Perusahaan yang bergerak di bidang Jasa Umrah & Haji, Provider visa, Land Arrangement, Paket Umrah Plus, Paket Haji Furoda dan Paket Haji Khusus.</p>`,

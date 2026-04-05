@@ -90,7 +90,7 @@ model Pendaftaran {
   id        String            @id @default(cuid())
   akunEmail String
   paketId   String
-  status    StatusPendaftaran @default(TIDAK_TERKONFIRMASI)
+  status    StatusPendaftaran @default(MENUNGGU)
   created   DateTime          @default(now())
 
   akun  Akun  @relation(fields: [akunEmail], references: [email])
@@ -157,11 +157,11 @@ model Pengumuman {
   tanggalSelesai DateTime?
   aktif          Boolean   @default(true)
   dibuatOlehId   String
-  pendaftaranId  String
+  pendaftaranId  String?
   created        DateTime  @default(now())
   updated        DateTime  @updatedAt
 
-  pendaftaran Pendaftaran @relation(fields: [pendaftaranId], references: [id])
+  pendaftaran Pendaftaran? @relation(fields: [pendaftaranId], references: [id])
 }
 
 // --------------------

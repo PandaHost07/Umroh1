@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ada Tour Travel — Presentasi Alur & Sistem</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface2: #334155;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --accent: #14b8a6;
+      --accent2: #0d9488;
+      --warn: #fbbf24;
+      --border: #475569;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 1.05rem;
+    }
+    .hero {
+      min-height: 42vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 3rem 1.5rem;
+      background: linear-gradient(160deg, #0f172a 0%, #134e4a 45%, #0f172a 100%);
+      border-bottom: 4px solid var(--accent);
+    }
+    .hero h1 {
+      margin: 0 0 0.5rem;
+      font-size: clamp(1.75rem, 4vw, 2.5rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .hero .tagline {
+      color: var(--muted);
+      max-width: 36rem;
+      margin: 0 0 1.5rem;
+    }
+    .hero .badge {
+      display: inline-block;
+      padding: 0.35rem 0.85rem;
+      background: rgba(20, 184, 166, 0.2);
+      color: var(--accent);
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .skip-link {
+      position: absolute;
+      left: -999px;
+      top: 0;
+      background: var(--accent);
+      color: #0f172a;
+      padding: 0.5rem 1rem;
+      z-index: 100;
+      font-weight: 600;
+    }
+    .skip-link:focus { left: 0; }
+    .layout {
+      display: flex;
+      align-items: flex-start;
+      min-height: 100vh;
+    }
+    .menu-toggle {
+      display: none;
+      position: fixed;
+      top: 0.75rem;
+      left: 0.75rem;
+      z-index: 60;
+      padding: 0.55rem 0.9rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      background: var(--accent);
+      color: #0f172a;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.35);
+    }
+    .menu-toggle:hover { filter: brightness(1.08); }
+    .nav-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 45;
+    }
+    .nav-overlay.is-open { display: block; }
+    .side-nav {
+      width: 300px;
+      flex-shrink: 0;
+      position: sticky;
+      top: 0;
+      align-self: flex-start;
+      height: 100vh;
+      overflow-y: auto;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 1.25rem 1rem 2rem;
+      z-index: 50;
+    }
+    .side-nav-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin: 0 0 0.5rem;
+      font-weight: 700;
+    }
+    .side-nav h2.menu-heading {
+      font-size: 1.05rem;
+      color: var(--accent);
+      margin: 0 0 1rem;
+      padding: 0;
+      border: none;
+    }
+    .nav-group {
+      margin-bottom: 1.35rem;
+    }
+    .nav-group-label {
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--warn);
+      margin-bottom: 0.45rem;
+      padding-left: 0.35rem;
+    }
+    .side-nav a {
+      display: block;
+      padding: 0.45rem 0.5rem 0.45rem 0.65rem;
+      margin: 2px 0;
+      border-radius: 6px;
+      color: #e2e8f0;
+      text-decoration: none;
+      font-size: 0.88rem;
+      line-height: 1.35;
+      border-left: 3px solid transparent;
+    }
+    .side-nav a:hover {
+      background: rgba(20, 184, 166, 0.12);
+      color: #5eead4;
+    }
+    .side-nav a.is-active {
+      background: rgba(20, 184, 166, 0.2);
+      border-left-color: var(--accent);
+      color: #5eead4;
+    }
+    .side-nav a .nav-num {
+      display: inline-block;
+      width: 1.35rem;
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.8rem;
+    }
+    .side-nav .nav-sub a {
+      font-size: 0.82rem;
+      padding-left: 1.5rem;
+      color: var(--muted);
+    }
+    .side-nav .nav-sub a .nav-num { width: 0; }
+    .main-column {
+      flex: 1;
+      min-width: 0;
+    }
+    .intro-banner {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 1.5rem;
+      color: #cbd5e1;
+      font-size: 0.95rem;
+    }
+    .intro-banner strong { color: #5eead4; }
+    main {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 2rem 1.25rem 4rem;
+    }
+    section {
+      margin-bottom: 3.5rem;
+      scroll-margin-top: 1rem;
+    }
+    h2 {
+      font-size: 1.45rem;
+      color: var(--accent);
+      border-left: 4px solid var(--accent);
+      padding-left: 0.75rem;
+      margin: 0 0 1rem;
+    }
+    h3 {
+      font-size: 1.1rem;
+      color: #e2e8f0;
+      margin: 1.5rem 0 0.65rem;
+    }
+    p { margin: 0 0 1rem; color: #cbd5e1; }
+    ul, ol { color: #cbd5e1; padding-left: 1.35rem; }
+    li { margin-bottom: 0.4rem; }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      margin: 1rem 0;
+    }
+    .card strong { color: #fff; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+      margin: 1rem 0;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 0.65rem 0.75rem;
+      text-align: left;
+    }
+    th {
+      background: var(--surface2);
+      color: var(--accent);
+      font-weight: 600;
+    }
+    tr:nth-child(even) td { background: rgba(30, 41, 59, 0.5); }
+    .diagram {
+      background: #fff;
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin: 1.25rem 0;
+      overflow-x: auto;
+      border: 1px solid var(--border);
+    }
+    .diagram .mermaid { display: flex; justify-content: center; }
+    .note {
+      background: rgba(251, 191, 36, 0.12);
+      border-left: 4px solid var(--warn);
+      padding: 0.85rem 1rem;
+      margin: 1rem 0;
+      color: #fde68a;
+      font-size: 0.95rem;
+    }
+    pre.code-ref {
+      background: #0c1222;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem 1.1rem;
+      overflow-x: auto;
+      font-size: 0.8rem;
+      line-height: 1.5;
+      color: #a5f3fc;
+      margin: 0.75rem 0 1rem;
+    }
+    code.inline { color: #5eead4; font-size: 0.9em; }
+    .section-lead {
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin: -0.25rem 0 1rem;
+      padding: 0.65rem 0.85rem;
+      background: rgba(51, 65, 85, 0.35);
+      border-radius: 8px;
+      border-left: 3px solid var(--accent2);
+    }
+    .footer {
+      text-align: center;
+      padding: 2rem 1rem;
+      color: var(--muted);
+      font-size: 0.88rem;
+      border-top: 1px solid var(--border);
+    }
+    @media (max-width: 960px) {
+      .menu-toggle { display: block; }
+      .side-nav {
+        position: fixed;
+        left: 0;
+        top: 0;
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        box-shadow: 8px 0 24px rgba(0,0,0,0.3);
+      }
+      .side-nav.is-open {
+        transform: translateX(0);
+      }
+      .main-column { width: 100%; }
+      .hero { padding-top: 3.5rem; }
+    }
+    @media print {
+      .menu-toggle, .nav-overlay { display: none !important; }
+      .side-nav {
+        position: static;
+        transform: none !important;
+        width: 100%;
+        height: auto;
+        border: 1px solid #ccc;
+        page-break-after: always;
+      }
+      .layout { display: block; }
+      .hero { min-height: auto; page-break-after: avoid; }
+      section { page-break-inside: avoid; }
+      body { background: #fff; color: #000; }
+      .card, th, td { border-color: #ccc; }
+      h2 { color: #0f766e; }
+      p, li, ul, ol { color: #333; }
+      .diagram { border: 1px solid #ccc; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#side-nav">Langsung ke menu isi</a>
+  <button type="button" class="menu-toggle" id="menu-toggle" aria-controls="side-nav" aria-expanded="false" aria-label="Buka atau tutup menu isi">☰ Menu isi</button>
+  <div class="nav-overlay" id="nav-overlay" aria-hidden="true"></div>
+
+  <div class="layout">
+    <aside class="side-nav" id="side-nav" aria-label="Daftar isi dokumen">
+      <p class="side-nav-title">Navigasi cepat</p>
+      <h2 class="menu-heading">Daftar bab</h2>
+      <p style="font-size:0.8rem;color:var(--muted);margin:0 0 1rem;line-height:1.4;">Klik judul di bawah untuk melompat ke bagian tersebut. Di layar kecil, gunakan tombol <strong>Menu isi</strong> pojok kiri atas.</p>
+
+      <nav>
+        <div class="nav-group">
+          <span class="nav-group-label">Bagian A — Bisnis &amp; pengguna</span>
+          <a href="#ringkasan" data-section="ringkasan"><span class="nav-num">1</span> Ringkasan sistem</a>
+          <a href="#peran" data-section="peran"><span class="nav-num">2</span> Peran pengguna &amp; URL</a>
+          <a href="#middleware" data-section="middleware"><span class="nav-num">3</span> Middleware &amp; proteksi rute</a>
+          <a href="#auth" data-section="auth"><span class="nav-num">4</span> Login &amp; sesi (JWT)</a>
+          <a href="#jamaah" data-section="jamaah"><span class="nav-num">5</span> Alur jamaah (end-to-end)</a>
+          <a href="#admin" data-section="admin"><span class="nav-num">6</span> Admin operasional vs keuangan</a>
+          <a href="#data" data-section="data"><span class="nav-num">7</span> Skema data (ER)</a>
+          <a href="#api" data-section="api"><span class="nav-num">8</span> Gambaran API backend</a>
+        </div>
+
+        <div class="nav-group">
+          <span class="nav-group-label">Bagian B — Teknis &amp; kode</span>
+          <a href="#arsitektur" data-section="arsitektur"><span class="nav-num">9</span> Arsitektur lapisan</a>
+          <a href="#request" data-section="request"><span class="nav-num">10</span> Pola request (server vs client)</a>
+          <a href="#peta-file" data-section="peta-file"><span class="nav-num">11</span> Peta folder proyek</a>
+          <a href="#daftar-kode" data-section="daftar-kode"><span class="nav-num">11b</span> Fitur → file kode</a>
+          <a href="#rantai-kode" data-section="rantai-kode"><span class="nav-num">12</span> Rantai file fitur</a>
+          <div class="nav-sub">
+            <a href="#cuplikan-kode">→ Cuplikan kode (presentasi)</a>
+            <a href="#rantai-login">→ Login (NextAuth)</a>
+            <a href="#rantai-register">→ Registrasi jamaah</a>
+            <a href="#rantai-api">→ Pola route.js</a>
+          </div>
+          <a href="#konvensi" data-section="konvensi"><span class="nav-num">13</span> Konvensi &amp; env</a>
+          <a href="#teknis" data-section="teknis"><span class="nav-num">14</span> Stack &amp; cara menjalankan</a>
+          <a href="#tambahan-diagram" data-section="tambahan-diagram"><span class="nav-num">15</span> Diagram &amp; glosarium tambahan</a>
+        </div>
+
+        <div class="nav-group">
+          <span class="nav-group-label">Lainnya</span>
+          <a href="#footer-info"><span class="nav-num">↓</span> Cara membuka file ini</a>
+          <a href="#top"><span class="nav-num">↑</span> Kembali ke judul</a>
+        </div>
+      </nav>
+    </aside>
+
+    <div class="main-column">
+  <header class="hero" id="top">
+    <span class="badge">Dokumen presentasi — internal / stakeholder</span>
+    <h1>Ada Tour Travel</h1>
+    <p class="tagline">
+      Sistem manajemen perjalanan umrah berbasis web: peran jamaah, admin operasional, dan admin keuangan —
+      dengan penjelasan <strong>alur bisnis</strong>, <strong>autentikasi</strong>, <strong>model data</strong>, dan <strong>letak kode</strong> di proyek Next.js.
+    </p>
+  </header>
+
+  <div class="intro-banner">
+    <strong>Cara pakai dokumen ini:</strong> gunakan <strong>menu di panel kiri</strong> (desktop) atau tombol <strong>« Menu isi »</strong> (HP/tablet) untuk pindah bab secara instan.
+    Diagram membutuhkan internet (pustaka Mermaid dari CDN). Untuk presentasi layar penuh, disarankan browser Chrome atau Edge.
+  </div>
+
+  <main>
+    <section id="ringkasan">
+      <h2>1. Ringkasan sistem</h2>
+      <p class="section-lead">Bab ini menjawab: <em>apa yang dibangun</em> dan <em>siapa penggunanya</em>, sebelum masuk ke alur teknis.</p>
+      <div class="card">
+        <p><strong>Tujuan:</strong> mendigitalkan proses mulai dari promosi paket, pendaftaran jamaah, pembayaran bertahap, pengumpulan dokumen, hingga pelaporan keuangan.</p>
+        <p><strong>Arsitektur singkat:</strong> satu aplikasi <strong>Next.js</strong> (tampilan halaman + API di folder <code>app/api</code>), database <strong>PostgreSQL</strong> diakses lewat <strong>Prisma</strong>. Di lingkungan cloud, koneksi bisa melalui <strong>Prisma Accelerate</strong> (URL database berawalan <code>prisma+postgres://</code>) agar query tetap cepat dari serverless.</p>
+      </div>
+      <h3>Modul utama</h3>
+      <ul>
+        <li><strong>Publik</strong> — beranda, paket, galeri, tentang kami, testimoni.</li>
+        <li><strong>Autentikasi</strong> — registrasi jamaah, login (email/password), sesi JWT + catatan di tabel <code>Session</code>.</li>
+        <li><strong>Jamaah</strong> — transaksi, pembayaran &amp; bukti, dokumen, profil, keberangkatan, testimoni.</li>
+        <li><strong>Admin operasional</strong> — master paket, hotel, penerbangan; data jamaah; dokumen &amp; perlengkapan; pengumuman; mitra.</li>
+        <li><strong>Admin keuangan</strong> — daftar pembayaran, verifikasi, laporan.</li>
+      </ul>
+    </section>
+
+    <section id="peran">
+      <h2>2. Peran pengguna &amp; struktur URL</h2>
+      <p class="section-lead">Satu akun punya satu <strong>role</strong> di tabel <code>Akun</code>. URL dashboard mengikuti role itu persis (huruf besar/kecil mengikuti enum Prisma), agar middleware bisa memblokir akses silang.</p>
+      <p>Role di database (<code>enum Role</code>) harus konsisten dengan prefix rute. Middleware memaksa pengguna hanya mengakses area sesuai role.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Role (Prisma)</th>
+            <th>URL utama</th>
+            <th>Deskripsi</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>jamaah</code></td>
+            <td><code>/jamaah</code></td>
+            <td>Pengguna akhir setelah daftar/login</td>
+          </tr>
+          <tr>
+            <td><code>ADMIN_OPERASIONAL</code></td>
+            <td><code>/ADMIN_OPERASIONAL</code></td>
+            <td>Operasional: paket, jamaah, dokumen, pengumuman, dll.</td>
+          </tr>
+          <tr>
+            <td><code>ADMIN_KEUANGAN</code></td>
+            <td><code>/ADMIN_KEUANGAN</code></td>
+            <td>Keuangan: transaksi, verifikasi pembayaran, laporan</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="note">
+        <strong>Catatan presentasi:</strong> jika pengguna sudah login lalu membuka <code>/login</code>, sistem mengarahkan ke <code>/&#123;role&#125;</code>. Akses ke area role lain akan diarahkan kembali ke area sendiri.
+      </div>
+    </section>
+
+    <section id="middleware">
+      <h2>3. Alur middleware &amp; proteksi rute (detail)</h2>
+      <p class="section-lead"><strong>Middleware</strong> berjalan <em>sebelum</em> halaman dimuat untuk path seperti <code>/jamaah/...</code> dan <code>/ADMIN_*</code>. Ia tidak menggantikan validasi di API; API tetap harus memastikan user hanya mengubah data yang diizinkan.</p>
+      <p>Setiap permintaan ke halaman yang dilindungi dicek: ada JWT tidak, <code>sessionToken</code> masih valid di database tidak, dan apakah path cocok dengan role.</p>
+      <div class="diagram">
+        <pre class="mermaid">
+flowchart TD
+  A[Permintaan HTTP masuk] --> B{Path diawali<br/>/jamaah atau /ADMIN_* ?}
+  B -->|Tidak| Z[Lanjut ke halaman / API]
+  B -->|Ya| C{JWT ada dan<br/>berisi sessionToken?}
+  C -->|Tidak| L[Redirect ke /login]
+  C -->|Ya| D[Cari Session di DB by sessionToken]
+  D --> E{Session valid dan<br/>belum expired?}
+  E -->|Tidak| L
+  E -->|Ya| F[Ambil role dari Akun terkait]
+  F --> G{URL dimulai dengan<br/>slash + role user?}
+  G -->|Tidak| R[Redirect ke path role]
+  G -->|Ya| Z
+  subgraph loginFlow [Jika pathname = /login]
+    L1[User buka /login] --> L2{JWT + Session valid?}
+    L2 -->|Ya| L3[Redirect ke dashboard role]
+    L2 -->|Tidak| L4[Tampilkan form login]
+  end
+        </pre>
+      </div>
+      <p>Implementasi: <code>middleware.js</code> membungkus <code>middlewares/withAuth.js</code> dengan daftar prefix yang dilindungi.</p>
+    </section>
+
+    <section id="auth">
+      <h2>4. Alur login &amp; sesi (sequence diagram)</h2>
+      <p class="section-lead">Login memakai <strong>email + password</strong> (Credentials). Password disimpan sebagai <strong>hash bcrypt</strong> di <code>Akun.password</code>. Setelah sukses, ada <strong>dua</strong> jejak sesi: cookie NextAuth (JWT) <em>dan</em> satu baris di tabel <code>Session</code> untuk dicek middleware.</p>
+      <p>NextAuth memakai strategi <strong>JWT</strong>. Setelah password benar, server membuat baris baru di tabel <strong>Session</strong> dan menyematkan <code>sessionToken</code> ke dalam JWT.</p>
+      <div class="diagram">
+        <pre class="mermaid">
+sequenceDiagram
+  autonumber
+  participant U as Pengguna / Browser
+  participant NA as NextAuth
+  participant DB as PostgreSQL via Prisma
+
+  U->>NA: Kirim email + password (Credentials)
+  NA->>DB: findUnique Akun by email
+  alt Akun tidak ada
+    DB-->>NA: null
+    NA-->>U: Error kredensial
+  else Akun ada
+    DB-->>NA: Akun + hash password
+    NA->>NA: bcrypt.compare(password, hash)
+    alt Password salah
+      NA-->>U: Error kredensial
+    else Password benar
+      NA->>NA: Generate sessionToken acak
+      NA->>DB: INSERT Session (sessionToken, userId=email, expires)
+      NA-->>U: JWT berisi sessionToken, role, nama, email, ...
+    end
+  end
+        </pre>
+      </div>
+      <h3>Langkah setelah login</h3>
+      <ol>
+        <li>Browser menyimpan sesi NextAuth (cookie).</li>
+        <li>Setiap navigasi ke area terlindungi, middleware membaca JWT → validasi <code>Session</code> di DB.</li>
+        <li>Role efektif diambil dari relasi <code>Session → Akun</code>, sehingga perubahan role di DB dapat dipakai untuk kontrol akses.</li>
+      </ol>
+    </section>
+
+    <section id="jamaah">
+      <h2>5. Alur jamaah — dari kunjungan hingga kelengkapan (detail)</h2>
+      <p class="section-lead">Alur di bawah adalah <strong>alur bisnis</strong> yang umum. Urutan pasti (misalnya kapan status pendaftaran berubah) mengikuti logika di <code>app/api/jamaah/...</code> dan halaman terkait.</p>
+      <div class="diagram">
+        <pre class="mermaid">
+flowchart TD
+  A([Pengunjung website]) --> B[Halaman publik:<br/>beranda, paket, testimoni]
+  B --> C{Lihat detail paket}
+  C --> D{Ingin mendaftar?}
+  D -->|Belum punya akun| E[Halaman Register]
+  E --> F[API register → insert Akun role jamaah]
+  D -->|Sudah punya akun| G[Halaman Login]
+  F --> G
+  G --> H[Dashboard /jamaah]
+  H --> I[Pesan paket → API jamaah/pesan]
+  I --> J[(Pendaftaran:<br/>status MENUNGGU / proses konfirmasi)]
+  J --> K[Pembayaran: DP / Cicilan / Pelunasan]
+  K --> L[Upload bukti → Pembayaran.status MENUNGGU → verifikasi admin keuangan]
+  L --> M[Upload dokumen: paspor, KTP, foto, dll.]
+  M --> N[Perlengkapan &amp; status penerimaan atribut]
+  J --> O[Pengumuman &amp; info keberangkatan]
+  H --> P[Testimoni setelah perjalanan]
+        </pre>
+      </div>
+      <p><strong>Entitas data inti:</strong> satu <code>Pendaftaran</code> menghubungkan satu jamaah (<code>akunEmail</code>) dengan satu <code>Paket</code>. Dari situ terbit <code>Pembayaran</code> (banyak baris), <code>Dokumen</code>, <code>Perlengkapan</code>, <code>Iternary</code>, dan <code>Pengumuman</code> terkait.</p>
+    </section>
+
+    <section id="admin">
+      <h2>6. Pembagian tugas admin (operasional vs keuangan)</h2>
+      <p class="section-lead">Dua role admin <strong>tidak</strong> mencampuri URL satu sama lain: masing-masing punya folder di <code>app/ADMIN_OPERASIONAL</code> dan <code>app/ADMIN_KEUANGAN</code>. Keduanya membaca/menulis data yang sama di PostgreSQL lewat API sistem.</p>
+      <div class="diagram">
+        <pre class="mermaid">
+flowchart LR
+  subgraph OPS[ADMIN OPERASIONAL]
+    direction TB
+    O1[CRUD Hotel &amp; Penerbangan]
+    O2[CRUD Paket umrah]
+    O3[Data jamaah &amp; pendaftaran]
+    O4[Verifikasi dokumen &amp; kelengkapan]
+    O5[Pengumuman &amp; jadwal keberangkatan]
+    O6[Moderasi testimoni / mitra]
+  end
+  subgraph KEU[ADMIN KEUANGAN]
+    direction TB
+    K1[Daftar transaksi &amp; pembayaran]
+    K2[Lihat bukti upload jamaah]
+    K3[Setujui / tolak pembayaran]
+    K4[Laporan keuangan &amp; arus kas]
+  end
+  OPS -.->|Membaca/mengubah konteks| P[(Pendaftaran / Paket / Master)]
+  KEU -.->|Fokus| BAY[(Pembayaran)]
+  P --> BAY
+        </pre>
+      </div>
+      <p><strong>Pesan untuk audiens:</strong> operasional mengatur “apa yang dijual” dan “siapa jamaahnya serta kelengkapannya”; keuangan mengatur “uang masuk” dan bukti pembayaran agar status transaksi akurat untuk laporan.</p>
+    </section>
+
+    <section id="data">
+      <h2>7. Skema data (ringkasan relasi)</h2>
+      <p class="section-lead">Model asli dan tipe field lengkap ada di file <code>prisma/schema.prisma</code>. Diagram ER di sini hanya untuk memahami <strong>siapa terhubung dengan siapa</strong>.</p>
+      <p>Diagram berikut menyederhanakan <code>prisma/schema.prisma</code> untuk presentasi. Detail kolom dan enum lengkap ada di repositori.</p>
+      <div class="diagram">
+        <pre class="mermaid">
+erDiagram
+  Akun ||--o{ Session : punya
+  Akun ||--o| ProfilAkun : profil
+  Akun ||--o{ Pendaftaran : daftar
+  Akun ||--o{ Testimoni : tulis
+
+  Paket }o--|| Hotel : hotel
+  Paket }o--|| Penerbangan : penerbangan
+  Paket ||--o{ Pendaftaran : dipilih
+
+  Pendaftaran ||--o{ Pembayaran : bayar
+  Pendaftaran ||--o{ Dokumen : unggah
+  Pendaftaran ||--o{ Perlengkapan : atribut
+  Pendaftaran ||--o{ Iternary : jadwal
+  Pendaftaran ||--o{ Pengumuman : info
+        </pre>
+      </div>
+      <h3>Enum penting (cuplikan)</h3>
+      <table>
+        <thead>
+          <tr><th>Enum</th><th>Nilai / arti singkat</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>Role</code></td><td><code>jamaah</code>, <code>ADMIN_KEUANGAN</code>, <code>ADMIN_OPERASIONAL</code></td></tr>
+          <tr><td><code>StatusPendaftaran</code></td><td>MENUNGGU, TERKONFIRMASI, TIDAK_TERKONFIRMASI</td></tr>
+          <tr><td><code>StatusPembayaran</code></td><td>MENUNGGU, TERVERIFIKASI, DITOLAK</td></tr>
+          <tr><td><code>JenisPembayaran</code></td><td>DP, CICILAN_1, PELUNASAN</td></tr>
+          <tr><td><code>JenisDokumen</code></td><td>PASPOR, KTP, FOTO, VAKSIN, VISA</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="api">
+      <h2>8. Gambaran API (REST route)</h2>
+      <p class="section-lead">Di Next.js App Router, setiap folder <code>app/api/.../route.js</code> bisa mengekspor fungsi HTTP (<code>GET</code>, <code>POST</code>, dll.). Itulah “backend” aplikasi ini — tanpa server Express terpisah.</p>
+      <p>Backend berupa <code>route.js</code> di bawah <code>app/api/</code>. Tabel ini membantu menjelaskan alur ke tim teknis atau QA.</p>
+      <table>
+        <thead>
+          <tr><th>Area</th><th>Contoh path</th><th>Fungsi</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Auth</td><td><code>/api/auth/[...nextauth]</code></td><td>Login, sesi NextAuth</td></tr>
+          <tr><td>Publik</td><td><code>/api/public/paket</code></td><td>Daftar/detail paket publik</td></tr>
+          <tr><td>Sistem</td><td><code>/api/system/register</code></td><td>Registrasi akun</td></tr>
+          <tr><td>Sistem</td><td><code>/api/system/paket</code>, hotel, penerbangan</td><td>Master data admin</td></tr>
+          <tr><td>Sistem</td><td><code>/api/system/pembayaran</code>, order, registration</td><td>Transaksi &amp; pembayaran sisi admin</td></tr>
+          <tr><td>Jamaah</td><td><code>/api/jamaah/pesan</code>, pendaftaran, upload-*</td><td>Pesan paket, bukti, dokumen</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="arsitektur">
+      <h2>9. Arsitektur lapisan (website + coding)</h2>
+      <p class="section-lead"><strong>Client</strong> = browser (React). <strong>Server</strong> = Node saat Next merender halaman atau menjalankan <code>route.js</code>. <strong>Database</strong> tidak pernah dihubungi langsung dari browser; selalu lewat server (Prisma).</p>
+      <p>Alur teknis dari sisi browser hingga database — berguna untuk menjelaskan <strong>di mana kode berjalan</strong> (client vs server).</p>
+      <div class="diagram">
+        <pre class="mermaid">
+flowchart TB
+  subgraph client [Browser — Client]
+    R[React: halaman &amp; komponen]
+    RC[Komponen client: use client + fetch]
+  end
+  subgraph next [Server Next.js]
+    MW[middleware.js + withAuth]
+    PG[app/.../page.js page.jsx]
+    API[app/api/.../route.js]
+  end
+  subgraph lib [Shared lib/]
+    PR[lib/prisma.js]
+    FB[lib/firebaseAdmin.js]
+    ML[lib/mail.js]
+  end
+  subgraph data [Data]
+    DB[(PostgreSQL)]
+    ACC[Prisma Accelerate opsional]
+  end
+  R --> RC
+  RC -->|HTTP fetch /api/...| API
+  MW --> PG
+  PG -->|bisa import prisma| PR
+  API --> PR
+  API --> FB
+  API --> ML
+  PR --> ACC
+  ACC --> DB
+        </pre>
+      </div>
+      <ul>
+        <li><strong>Middleware</strong> berjalan di edge/runtime Next sebelum halaman; memakai <code>getToken</code> + query Prisma ke <code>Session</code>.</li>
+        <li><strong>Route API</strong> adalah fungsi <code>GET/POST/...</code> di <code>route.js</code> — tempat logika bisnis dan validasi server.</li>
+        <li><strong><code>lib/prisma.js</code></strong> satu pintu ke database; jika <code>DATABASE_URL</code> berawalan <code>prisma+</code>, dipasang ekstensi Accelerate.</li>
+      </ul>
+    </section>
+
+    <section id="request">
+      <h2>10. Dua pola request yang sering dipakai</h2>
+      <p class="section-lead">Proyek ini banyak memakai komponen bertanda <code>"use client"</code> yang memanggil <code>fetch('/api/...')</code> setelah halaman tampil. Pola alternatif adalah mengambil data di Server Component tanpa fetch ke API sendiri — keduanya valid di Next.js.</p>
+      <div class="diagram">
+        <pre class="mermaid">
+flowchart LR
+  subgraph A[Halaman dengan data awal]
+    U1[Pengguna buka URL] --> S1[Server render page]
+    S1 --> S2[Bisa query prisma di Server Component]
+    S2 --> S3[HTML dikirim ke browser]
+  end
+  subgraph B[Aksi dari tombol / form]
+    U2[Klik submit / pakai useEffect] --> F1[fetch ke /api/...]
+    F1 --> R1[route.js validasi + prisma]
+    R1 --> F2[JSON response]
+    F2 --> F3[UI update state / reload]
+  end
+        </pre>
+      </div>
+      <p><strong>Praktik di proyek ini:</strong> banyak halaman admin/jamaah memuat data lewat <code>fetch</code> dari client ke <code>/api/system/...</code> atau <code>/api/jamaah/...</code>. NextAuth menangani <code>/api/auth/*</code> secara khusus.</p>
+    </section>
+
+    <section id="peta-file">
+      <h2>11. Peta folder → tanggung jawab kode</h2>
+      <p class="section-lead">Gunakan tabel ini saat <strong>onboarding developer</strong>: mencari “halaman jamaah ada di mana”, “API pembayaran ada di mana”, dan sebagainya.</p>
+      <table>
+        <thead>
+          <tr><th>Path proyek</th><th>Fungsi coding</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>app/(public)/</code></td><td>Halaman marketing: beranda, paket, galeri, tentang kami</td></tr>
+          <tr><td><code>app/(auth page)/</code></td><td>Login, register, logout — form memanggil NextAuth atau <code>/api/system/register</code></td></tr>
+          <tr><td><code>app/jamaah/</code></td><td>Panel jamaah: transaksi, pembayaran, profil, dokumen, testimoni</td></tr>
+          <tr><td><code>app/ADMIN_OPERASIONAL/</code></td><td>Dashboard &amp; menu operasional (paket, jamaah, hotel, pengumuman, …)</td></tr>
+          <tr><td><code>app/ADMIN_KEUANGAN/</code></td><td>Dashboard keuangan, pembayaran, laporan</td></tr>
+          <tr><td><code>app/api/</code></td><td>Semua endpoint backend (REST-like) per folder</td></tr>
+          <tr><td><code>components/</code></td><td>UI reusable: navbar, sidebar, tabel, modal, chart, PDF</td></tr>
+          <tr><td><code>lib/prisma.js</code></td><td>Instans PrismaClient (+ Accelerate jika dipakai)</td></tr>
+          <tr><td><code>lib/firebaseAdmin.js</code></td><td>Inisialisasi Firebase untuk upload file</td></tr>
+          <tr><td><code>middleware.js</code> + <code>middlewares/withAuth.js</code></td><td>Proteksi rute berdasarkan JWT + Session DB</td></tr>
+          <tr><td><code>prisma/schema.prisma</code></td><td>Sumber kebenaran model &amp; enum — jalan <code>prisma generate</code></td></tr>
+          <tr><td><code>file-data.js</code></td><td>Script seed 2 akun admin (baca <code>file-data.json</code>)</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="daftar-kode">
+      <h2>11b. Referensi cepat: menu / fitur → lokasi file (tanpa menyalin seluruh kode)</h2>
+      <p class="section-lead">Tabel di bawah menjawab <strong>“kodingnya di mana?”</strong> untuk halaman dan menu utama. Path ditulis relatif dari <strong>akar proyek</strong> (folder <code>adatourtravel-main</code>). Folder dengan tanda kurung <code>(nama)</code> adalah <em>route group</em> Next.js — <strong>tidak</strong> muncul di URL.</p>
+
+      <h3>A. Halaman publik &amp; paket</h3>
+      <table>
+        <thead>
+          <tr><th>Fitur / menu</th><th>URL contoh</th><th>File halaman utama</th><th>API terkait (jika ada)</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Beranda landing</td>
+            <td><code>/</code></td>
+            <td><code>app/(public)/page.js</code></td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td><strong>Daftar paket</strong> (publik)</td>
+            <td><code>/paket</code></td>
+            <td><code>app/(public)/paket/page.jsx</code></td>
+            <td><code>app/api/public/paket/route.js</code></td>
+          </tr>
+          <tr>
+            <td>Detail paket</td>
+            <td><code>/paket/detail/[slug]</code></td>
+            <td><code>app/(public)/paket/detail/[slug]/page.jsx</code></td>
+            <td><code>app/api/public/paket/[id]/route.js</code></td>
+          </tr>
+          <tr>
+            <td>Galeri, tentang kami, testimoni publik</td>
+            <td><code>/galeri</code>, dll.</td>
+            <td><code>app/(public)/galeri/page.jsx</code>, <code>tentang-kami/page.jsx</code>, <code>testimoni/page.jsx</code></td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>Tautan <strong>Login</strong> di navbar situs</td>
+            <td>menu → <code>/login</code></td>
+            <td><code>components/Navbar/navbar.jsx</code> (mis. <code>href="/login"</code>)</td>
+            <td>—</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>B. Login, register &amp; sesi</h3>
+      <table>
+        <thead>
+          <tr><th>Fitur</th><th>URL</th><th>File UI</th><th>File backend / auth</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Halaman login</strong></td>
+            <td><code>/login</code></td>
+            <td><code>app/(auth page)/login/page.js</code></td>
+            <td>NextAuth: <code>app/api/auth/[...nextauth]/route.js</code> (export <code>authOptions</code> + handler)</td>
+          </tr>
+          <tr>
+            <td><strong>Halaman register</strong> jamaah</td>
+            <td><code>/register</code></td>
+            <td><code>app/(auth page)/register/page.js</code></td>
+            <td><code>app/api/system/register/route.js</code> (POST, buat <code>Akun</code>)</td>
+          </tr>
+          <tr>
+            <td>Logout (UI)</td>
+            <td><code>/logout</code> (jika dipakai)</td>
+            <td><code>app/(auth page)/logout/page.jsx</code></td>
+            <td>API sistem: <code>app/api/system/logout/route.js</code>; sidebar memakai <code>signOut</code> NextAuth</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>C. Jamaah — dashboard &amp; menu samping</h3>
+      <p>Daftar menu jamaah didefinisikan di <strong><code>app/jamaah/layout.js</code></strong> (array <code>Sidebar_list</code>). Komponen tampilan menu: <strong><code>components/Sidebar/sidebar.jsx</code></strong>.</p>
+      <table>
+        <thead>
+          <tr><th>Menu (teks di sidebar)</th><th>Path URL (setelah <code>/jamaah</code>)</th><th>File halaman</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Dashboard</td><td><code>/jamaah</code> (root)</td><td><code>app/jamaah/page.js</code></td></tr>
+          <tr><td>Transaksi</td><td><code>/transaksi</code></td><td><code>app/jamaah/transaksi/page.js</code></td></tr>
+          <tr><td>Pesan paket</td><td><code>/transaksi/pesan</code></td><td><code>app/jamaah/transaksi/pesan/page.js</code> atau <code>page.jsx</code></td></tr>
+          <tr><td>Detail transaksi</td><td><code>/transaksi/[slug]</code></td><td><code>app/jamaah/transaksi/[slug]/page.jsx</code></td></tr>
+          <tr><td>Pembayaran</td><td><code>/pembayaran</code></td><td><code>app/jamaah/pembayaran/page.js</code></td></tr>
+          <tr><td>Detail pembayaran</td><td><code>/pembayaran/[slug]</code></td><td><code>app/jamaah/pembayaran/[slug]/page.jsx</code></td></tr>
+          <tr><td>Keberangkatan</td><td><code>/keberangkatan</code></td><td><code>app/jamaah/keberangkatan/page.jsx</code></td></tr>
+          <tr><td>Testimoni</td><td><code>/testimoni</code></td><td><code>app/jamaah/testimoni/page.jsx</code></td></tr>
+          <tr><td>Profile Saya</td><td><code>/profile-saya</code></td><td><code>app/jamaah/profile-saya/page.jsx</code></td></tr>
+        </tbody>
+      </table>
+      <p class="note">API jamaah umumnya di <code>app/api/jamaah/...</code> (contoh: <code>pesan</code>, <code>pendaftaran</code>, <code>upload-bukti</code>, <code>upload-dokumen</code>).</p>
+
+      <h3>D. Admin keuangan — dashboard &amp; menu</h3>
+      <p>Menu sidebar: <strong><code>app/ADMIN_KEUANGAN/layout.js</code></strong> (<code>Sidebar_list</code>). Semua URL di bawah prefix <code>/ADMIN_KEUANGAN</code>.</p>
+      <table>
+        <thead>
+          <tr><th>Menu sidebar</th><th>Path URL</th><th>File halaman</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Dashboard</strong></td><td><code>/ADMIN_KEUANGAN</code></td><td><code>app/ADMIN_KEUANGAN/(dashboard)/page.jsx</code></td></tr>
+          <tr><td>Daftar Transaksi</td><td><code>/ADMIN_KEUANGAN/daftar-transaksi</code></td><td><code>app/ADMIN_KEUANGAN/(menu utama)/daftar-transaksi/page.jsx</code></td></tr>
+          <tr><td>Pembayaran</td><td><code>/ADMIN_KEUANGAN/pembayaran</code></td><td><code>app/ADMIN_KEUANGAN/(menu utama)/pembayaran/page.jsx</code> + komponen <code>payment.jsx</code></td></tr>
+          <tr><td>Detail pembayaran</td><td><code>/ADMIN_KEUANGAN/pembayaran/[slug]</code></td><td><code>app/ADMIN_KEUANGAN/(menu utama)/pembayaran/[slug]/page.jsx</code></td></tr>
+          <tr><td>Laporan Arus Kas</td><td><code>/ADMIN_KEUANGAN/laporan-arus-kas</code></td><td><code>app/ADMIN_KEUANGAN/(menu laporan)/laporan-arus-kas/page.jsx</code></td></tr>
+          <tr><td>Laporan Keuangan</td><td><code>/ADMIN_KEUANGAN/laporan-keuangan</code></td><td><code>app/ADMIN_KEUANGAN/(menu laporan)/laporan-keuangan/page.jsx</code></td></tr>
+          <tr><td>Profile Saya</td><td><code>/ADMIN_KEUANGAN/profile-saya</code></td><td><code>app/ADMIN_KEUANGAN/profile-saya/page.jsx</code></td></tr>
+        </tbody>
+      </table>
+      <p>API keuangan/transaksi banyak di <code>app/api/system/pembayaran/route.js</code>, <code>order/route.js</code>, <code>registration/route.js</code> (sesuai pemanggilan dari halaman).</p>
+
+      <h3>E. Admin operasional — dashboard &amp; menu</h3>
+      <p>Menu sidebar: <strong><code>app/ADMIN_OPERASIONAL/layout.js</code></strong> (<code>Sidebar_list</code>). Prefix URL: <code>/ADMIN_OPERASIONAL</code>.</p>
+      <table>
+        <thead>
+          <tr><th>Menu sidebar</th><th>Path URL</th><th>File halaman / komponen</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Dashboard</strong></td><td><code>/ADMIN_OPERASIONAL</code></td><td><code>app/ADMIN_OPERASIONAL/(dashboard)/page.jsx</code></td></tr>
+          <tr><td>Kelengkapan Dokumen</td><td><code>/kelengkapan-dokumen</code></td><td><code>(menu utama)/kelengkapan-dokumen/page.jsx</code> + <code>dokumen.jsx</code></td></tr>
+          <tr><td>Data Jamaah</td><td><code>/data-jamaah</code></td><td><code>(menu utama)/data-jamaah/page.jsx</code></td></tr>
+          <tr><td>Kelengkapan Atribut</td><td><code>/kelengkapan-atribut</code></td><td><code>(menu utama)/kelengkapan-atribut/page.jsx</code> + <code>perlengkapan.jsx</code></td></tr>
+          <tr><td>Keberangkatan &amp; Manasik</td><td><code>/keberangkatan</code></td><td><code>(menu utama)/keberangkatan/page.jsx</code>, <code>pengumuman.jsx</code></td></tr>
+          <tr><td>Pengumuman</td><td><code>/pengumuman</code></td><td><code>(menu utama)/pengumuman/page.jsx</code></td></tr>
+          <tr><td>Kelola Mitra</td><td><code>/mitra</code></td><td><code>(menu utama)/mitra/page.jsx</code></td></tr>
+          <tr><td>Testimoni</td><td><code>/testimoni</code></td><td><code>(menu utama)/testimoni/page.jsx</code></td></tr>
+          <tr><td><strong>Daftar Paket</strong> (admin)</td><td><code>/daftar-paket</code></td><td><code>(menu paket)/daftar-paket/page.jsx</code></td></tr>
+          <tr><td>Tambah paket</td><td><code>/daftar-paket/tambah</code></td><td><code>(menu paket)/daftar-paket/tambah/page.jsx</code></td></tr>
+          <tr><td>Edit paket</td><td><code>/daftar-paket/edit/[slug]</code></td><td><code>(menu paket)/daftar-paket/edit/[slug]/page.jsx</code></td></tr>
+          <tr><td>Hotel &amp; Penerbangan</td><td><code>/hotel-penerbangan</code></td><td><code>(menu paket)/hotel-penerbangan/page.jsx</code>, <code>hotel.jsx</code>, <code>penerbangan.jsx</code></td></tr>
+          <tr><td>Profile Saya</td><td><code>/profile-saya</code></td><td><code>app/ADMIN_OPERASIONAL/profile-saya/page.jsx</code></td></tr>
+        </tbody>
+      </table>
+      <p class="note">Baris di atas memakai path relatif di bawah <code>app/ADMIN_OPERASIONAL/</code> kecuali baris terakhir. API master data: <code>app/api/system/paket/route.js</code>, <code>hotel/route.js</code>, <code>penerbangan/route.js</code>, <code>document/route.js</code>, <code>perlengkapan/route.js</code>, <code>pengumuman/route.js</code>, <code>mitra/route.js</code>.</p>
+
+      <h3>F. Ringkasan “satu pandangan”</h3>
+      <table>
+        <thead>
+          <tr><th>Butuh mengubah…</th><th>Mulai dari file…</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Tampilan login / register</td><td><code>app/(auth page)/login/page.js</code>, <code>register/page.js</code></td></tr>
+          <tr><td>Logika setelah klik login</td><td><code>app/api/auth/[...nextauth]/route.js</code></td></tr>
+          <tr><td>Daftar paket di situs publik</td><td><code>app/(public)/paket/page.jsx</code> + API <code>app/api/public/paket/route.js</code></td></tr>
+          <tr><td>CRUD paket di admin</td><td>Halaman <code>ADMIN_OPERASIONAL/.../daftar-paket/</code> + <code>app/api/system/paket/route.js</code></td></tr>
+          <tr><td>Menu samping admin keuangan / operasional / jamaah</td><td>Masing-masing <code>layout.js</code> di folder role + <code>components/Sidebar/sidebar.jsx</code></td></tr>
+          <tr><td>Proteksi “harus login”</td><td><code>middleware.js</code>, <code>middlewares/withAuth.js</code></td></tr>
+        </tbody>
+      </table>
+
+      <h3 id="cuplikan-kode">G. Cuplikan kode (sedikit saja — cocok untuk slide)</h3>
+      <p class="section-lead">Ini <strong>bukan</strong> file lengkap; hanya inti yang bisa ditampilkan saat presentasi untuk menjelaskan “alur koding”. Teks di bawah disalin dari proyek; simbol <code>&lt;</code> ditulis aman untuk HTML.</p>
+
+      <h4>G.1 Daftar paket (publik) — ambil data dari API</h4>
+      <p><strong>File:</strong> <code>app/(public)/paket/page.jsx</code> — komponen client memuat daftar lewat <code>fetch</code> saat halaman siap.</p>
+      <pre class="code-ref">// useEffect ringkas — setelah mount, GET /api/public/paket
+useEffect(() => {
+  const fetching = async () => {
+    const res = await fetch("/api/public/paket");
+    const resJson = await res.json();
+    if (res.ok &amp;&amp; resJson.paket) {
+      setListPaket(resJson.paket);
+      setLoading(false);
+    }
+  };
+  fetching();
+}, []);</pre>
+
+      <h4>G.2 API daftar paket — filter aktif &amp; tanggal belum lewat</h4>
+      <p><strong>File:</strong> <code>app/api/public/paket/route.js</code></p>
+      <pre class="code-ref">export async function GET() {
+  const paketList = await prisma.paket.findMany({
+    where: {
+      status: "AKTIF",
+      tanggalBerangkat: { gt: new Date() },
+    },
+    include: { hotel: true, penerbangan: true },
+    orderBy: { tanggalBerangkat: "asc" },
+  });
+  // ... hitung kuota → return JSON { paket: [...] }
+}</pre>
+
+      <h4>G.3 Halaman pesan paket — parameter URL &amp; tombol pesan</h4>
+      <p><strong>File:</strong> <code>app/jamaah/transaksi/pesan/page.js</code> — URL biasanya <code>/jamaah/transaksi/pesan?pesan=&lt;idPaket&gt;</code>. Jika belum login, diarahkan ke <code>/login</code>.</p>
+      <pre class="code-ref">const paketId = searchParams.get("pesan");
+
+const fetchPaketDetail = async () => {
+  const res = await fetch(`/api/public/paket/${paketId}`);
+  const data = await res.json();
+  // cek tanggal berangkat belum lewat, lalu setPaket(data)
+};
+
+const handlePesan = async () => {
+  if (!session?.user?.email) {
+    router.push("/login");
+    return;
+  }
+  const res = await fetch("/api/jamaah/pesan", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ paketId, akunEmail: session.user.email }),
+  });
+  // sukses → arahkan ke /jamaah/pembayaran
+};</pre>
+
+      <h4>G.4 API terima pesanan — validasi kuota &amp; duplikat</h4>
+      <p><strong>File:</strong> <code>app/api/jamaah/pesan/route.js</code></p>
+      <pre class="code-ref">export async function POST(req) {
+  const { paketId, akunEmail } = await req.json();
+  const paket = await prisma.paket.findUnique({ where: { id: paketId } });
+  if (paket.status !== "AKTIF") { /* 400 */ }
+  const used = await hitungKuotaTersedia(prisma, paketId);
+  if (used &gt;= paket.kuota) { /* kuota penuh */ }
+  const existing = await prisma.pendaftaran.findFirst({
+    where: { akunEmail, paketId },
+  });
+  // jika OK → buat Pendaftaran + ...
+}</pre>
+
+      <h4>G.5 Login — NextAuth credentials</h4>
+      <p><strong>File:</strong> <code>app/(auth page)/login/page.js</code></p>
+      <pre class="code-ref">const res = await signIn("credentials", {
+  email, password, redirect: false,
+});
+if (res.error) { /* tampilkan salah password */ return; }
+const response = await fetch("/api/auth/session");
+const session = await response.json();
+if (session.user?.role) router.push(`/${session.user.role}`);</pre>
+
+      <h4>G.6 Register jamaah — kirim ke API sistem</h4>
+      <p><strong>File:</strong> <code>app/(auth page)/register/page.js</code></p>
+      <pre class="code-ref">const res = await fetch("/api/system/register", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ ...form, role: "jamaah" }),
+});</pre>
+
+      <h4>G.7 Menu sidebar admin keuangan — definisi di layout</h4>
+      <p><strong>File:</strong> <code>app/ADMIN_KEUANGAN/layout.js</code> — array <code>Sidebar_list</code> menentukan label menu dan path relatif (akan menjadi <code>/ADMIN_KEUANGAN/...</code>).</p>
+      <pre class="code-ref">const Sidebar_list = [
+  {
+    title: "Menu Utama",
+    list: [
+      { title: "Dashboard", link: "/" },
+      { title: "Daftar Transaksi", link: "/daftar-transaksi" },
+      { title: "Pembayaran", link: "/pembayaran" },
+    ],
+  },
+  // + Menu Laporan, Profile, ...
+];
+
+export default function LayoutAdmin({ children }) {
+  return (
+    &lt;Sidebar role="ADMIN_KEUANGAN" list={Sidebar_list}&gt;
+      {children}
+    &lt;/Sidebar&gt;
+  );
+}</pre>
+
+      <h4>G.8 Navbar publik — tautan ke login</h4>
+      <p><strong>File:</strong> <code>components/Navbar/navbar.jsx</code> (cuplikan pola)</p>
+      <pre class="code-ref">&lt;a href="/login"&gt;Masuk / Login&lt;/a&gt;
+// Tautan serupa bisa mengarah ke /register untuk daftar</pre>
+
+      <div class="note">
+        <strong>Tips presentasi:</strong> tunjukkan urutan <strong>G.1 → G.2</strong> untuk “cara paket muncul di website”, lalu <strong>G.3 → G.4</strong> untuk “cara jamaah memesan sampai data masuk database”. <strong>G.5–G.6</strong> untuk autentikasi, <strong>G.7</strong> untuk menjelaskan dari mana menu admin berasal.
+      </div>
+    </section>
+
+    <section id="rantai-kode">
+      <h2>12. Rantai file saat fitur dipakai (contoh konkret)</h2>
+
+      <h3 id="rantai-login">12.1 Login (credentials)</h3>
+      <div class="diagram">
+        <pre class="mermaid">
+flowchart LR
+  A[app/.../login/page.js] -->|signIn credentials| B[app/api/auth/...nextauth.../route.js]
+  B --> C[authOptions.authorize]
+  C --> D[lib/prisma → Akun]
+  C --> E[prisma.session.create]
+  B --> F[JWT + cookie sesi]
+  G[middleware.js] --> H[withAuth → Session + role]
+        </pre>
+      </div>
+      <p>Berkas kunci: <code class="inline">app/api/auth/[...nextauth]/route.js</code> (definisi <code>authOptions</code>), <code class="inline">middlewares/withAuth.js</code>, <code class="inline">lib/prisma.js</code>.</p>
+
+      <h3 id="rantai-register">12.2 Registrasi jamaah</h3>
+      <pre class="code-ref">app/(auth page)/register/page.js
+  → fetch POST /api/system/register
+app/api/system/register/route.js
+  → cek DATABASE_URL, bcrypt.hash, prisma.akun.create</pre>
+
+      <h3 id="rantai-api">12.3 Pola umum API route</h3>
+      <pre class="code-ref">app/api/jamaah/pesan/route.js  (contoh konsep)
+export async function POST(req) {
+  const body = await req.json();
+  // validasi, cek sesi jika perlu (getServerSession / header)
+  await prisma.pendaftaran.create({ ... });
+  return Response.json({ ok: true });
+}</pre>
+      <p>Setiap <code>route.js</code> bisa mengekspor <code>GET</code>, <code>POST</code>, <code>PUT</code>, <code>PATCH</code>, <code>DELETE</code> sesuai kebutuhan.</p>
+    </section>
+
+    <section id="konvensi">
+      <h2>13. Konvensi coding &amp; hal yang sering salah</h2>
+      <p class="section-lead">Bagian ini merangkum kesalahan umum (salah URL role, bocor env ke client, seed usang) agar tim menghindari debugging berulang.</p>
+      <ul>
+        <li><strong>Import alias</strong> — <code>@/lib/prisma</code> mengacu ke root proyek (lihat <code>jsconfig.json</code> paths).</li>
+        <li><strong>Role vs URL</strong> — nilai enum Prisma harus sama dengan segment URL (<code>ADMIN_KEUANGAN</code> huruf besar, <code>jamaah</code> huruf kecil).</li>
+        <li><strong>Session ganda</strong> — tiap login menambah baris <code>Session</code>; pertimbangkan pembersihan untuk produksi.</li>
+        <li><strong><code>prisma/seed.js</code></strong> — belum selaras skema terbaru; untuk admin gunakan <code>npm run seed:file-data</code>.</li>
+        <li><strong>Environment</strong> — variabel tanpa prefix hanya ada di server; yang berawalan <code>NEXT_PUBLIC_</code> terbuka ke browser.</li>
+      </ul>
+      <h3>Variabel lingkungan vs lapisan</h3>
+      <table>
+        <thead>
+          <tr><th>Variabel</th><th>Dipakai di</th><th>Keterangan</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>DATABASE_URL</code></td><td>Server only</td><td>Prisma; bisa <code>prisma+postgres://</code></td></tr>
+          <tr><td><code>NEXTAUTH_SECRET</code></td><td>Server</td><td>Menandatangani JWT</td></tr>
+          <tr><td><code>NEXTAUTH_URL</code></td><td>Server</td><td>Origin absolut untuk NextAuth</td></tr>
+          <tr><td><code>NEXT_PUBLIC_BASE_URL</code></td><td>Browser + server</td><td>URL front-end untuk link/fetch publik</td></tr>
+          <tr><td><code>FIREBASE_*</code>, <code>SMTP_*</code>, <code>BLOB_*</code></td><td>Server (route / server action)</td><td>Jangan expose ke client</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="teknis">
+      <h2>14. Stack teknologi &amp; menjalankan proyek</h2>
+      <p class="section-lead">Perintah di kotak kuning di bawah adalah langkah minimal untuk mencoba aplikasi di komputer lokal setelah kode di-clone.</p>
+      <ul>
+        <li><strong>Next.js 16</strong> + <strong>React 19</strong> — UI dan server components / route handlers.</li>
+        <li><strong>Prisma</strong> + <strong>PostgreSQL</strong> — model data; opsional <strong>Accelerate</strong> untuk URL <code>prisma+postgres://</code>.</li>
+        <li><strong>NextAuth</strong> — JWT + tabel <code>Session</code>.</li>
+        <li><strong>Firebase Admin</strong> / <strong>Vercel Blob</strong> — penyimpanan file.</li>
+        <li><strong>Nodemailer</strong> — email SMTP.</li>
+        <li><strong>Tailwind + Flowbite</strong> — tampilan.</li>
+      </ul>
+      <div class="note">
+        Untuk menjalankan proyek: <code>npm install</code>, atur <code>.env</code>, <code>npx prisma generate</code>, <code>npm run dev</code>.
+        Seed akun admin contoh: <code>npm run seed:file-data</code> (lihat <code>file-data.json</code>).
+      </div>
+    </section>
+
+    <section id="tambahan-diagram">
+      <h2>15. Diagram &amp; informasi tambahan (untuk melengkapi presentasi)</h2>
+      <p class="section-lead">Bab ini melengkapi bab sebelumnya dengan <strong>status bisnis</strong> di database, <strong>alur verifikasi pembayaran</strong>, gambaran <strong>deploy</strong>, <strong>glosarium</strong>, dan <strong>cara membaca simbol</strong> diagram.</p>
+
+      <h3>15.1 Legenda singkat (cara membaca flowchart)</h3>
+      <div class="card">
+        <ul style="margin:0;">
+          <li><strong>Kotak persegi panjang</strong> — langkah proses atau komponen sistem.</li>
+          <li><strong>Belah ketupat (diamond)</strong> — kondisi ya/tidak atau keputusan.</li>
+          <li><strong>Silinder</strong> — penyimpanan data / database.</li>
+          <li><strong>Panah</strong> — arah alur waktu atau ketergantungan.</li>
+          <li>Diagram <strong>sequence</strong> (urutan vertikal) — siapa memanggil siapa dalam satu skenario.</li>
+        </ul>
+      </div>
+
+      <h3>15.2 Status pembayaran (<code>StatusPembayaran</code>)</h3>
+      <p>Setiap baris <code>Pembayaran</code> memiliki status yang mengatur apakah uang dianggap sah untuk laporan keuangan.</p>
+      <div class="diagram">
+        <pre class="mermaid">
+stateDiagram-v2
+  [*] --> MENUNGGU: buat pembayaran / upload bukti
+  MENUNGGU --> TERVERIFIKASI: admin keuangan setujui
+  MENUNGGU --> DITOLAK: admin keuangan tolak
+  TERVERIFIKASI --> [*]
+  DITOLAK --> [*]
+        </pre>
+      </div>
+
+      <h3>15.3 Status pendaftaran (<code>StatusPendaftaran</code>)</h3>
+      <p>Mengikat satu jamaah ke satu paket; mempengaruhi apakah jamaah dianggap terkonfirmasi untuk keberangkatan.</p>
+      <div class="diagram">
+        <pre class="mermaid">
+stateDiagram-v2
+  [*] --> MENUNGGU: setelah pesan paket
+  MENUNGGU --> TERKONFIRMASI: admin operasional setujui
+  MENUNGGU --> TIDAK_TERKONFIRMASI: dibatalkan / ditolak
+  TERKONFIRMASI --> [*]
+  TIDAK_TERKONFIRMASI --> [*]
+        </pre>
+      </div>
+      <p class="note" style="margin-top:0.5rem;">Detail transisi pasti mengikuti logika di <code>app/api/...</code>; diagram ini hanya ringkasan konsep untuk audiens non-developer.</p>
+
+      <h3>15.4 Alur verifikasi pembayaran (jamaah ↔ admin keuangan)</h3>
+      <div class="diagram">
+        <pre class="mermaid">
+sequenceDiagram
+  autonumber
+  participant J as Jamaah
+  participant API as API upload-bukti
+  participant DB as PostgreSQL
+  participant AD as Admin keuangan
+  participant APV as API pembayaran sistem
+
+  J->>API: unggah file bukti
+  API->>DB: simpan URL bukti status MENUNGGU
+  AD->>APV: buka daftar pembayaran
+  APV->>DB: baca Pembayaran
+  AD->>APV: setujui atau tolak
+  APV->>DB: update status TERVERIFIKASI atau DITOLAK
+        </pre>
+      </div>
+
+      <h3>15.5 Jenis pembayaran (<code>JenisPembayaran</code>) — urutan konsep</h3>
+      <table>
+        <thead>
+          <tr><th>Nilai enum</th><th>Arti untuk jamaah / keuangan</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>DP</code></td><td>Uang muka / booking awal</td></tr>
+          <tr><td><code>CICILAN_1</code></td><td>Cicilan (bisa diperluas ke cicilan berikutnya di versi aplikasi)</td></tr>
+          <tr><td><code>PELUNASAN</code></td><td>Pelunasan sebelum keberangkatan</td></tr>
+        </tbody>
+      </table>
+
+      <h3>15.6 Lingkungan: lokal vs produksi</h3>
+      <div class="diagram">
+        <pre class="mermaid">
+flowchart TB
+  subgraph lokal [Pengembangan lokal]
+    L1[npm run dev] --> L2[Next.js localhost]
+    L2 --> L3[(PostgreSQL / Accelerate)]
+    L2 --> L4[.env lokal]
+  end
+  subgraph prod [Produksi umum]
+    P1[Git push] --> P2[Build Vercel / CI]
+    P2 --> P3[URL domain]
+    P3 --> P4[(Database cloud)]
+    P2 --> P5[Env vars server]
+  end
+        </pre>
+      </div>
+      <p>Proyek ini umumnya di-<strong>build</strong> dengan <code>npm run build</code> (termasuk <code>prisma generate</code> sesuai <code>package.json</code>), lalu dijalankan dengan <code>npm start</code> atau platform hosting yang menjalankan perintah setara.</p>
+
+      <h3>15.7 Glosarium (istilah yang sering disebut saat presentasi)</h3>
+      <table>
+        <thead>
+          <tr><th>Istilah</th><th>Penjelasan singkat</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>JWT</strong></td><td>Token teks yang dibubuhi tanda tangan; dipakai NextAuth untuk mengenali sesi tanpa simpan session penuh di server setiap request.</td></tr>
+          <tr><td><strong>ORM / Prisma</strong></td><td>Perantara antara kode TypeScript/JavaScript dan SQL; skema di <code>schema.prisma</code>.</td></tr>
+          <tr><td><strong>API Route</strong></td><td>File <code>route.js</code> di <code>app/api</code> yang menangani HTTP seperti endpoint backend terpisah.</td></tr>
+          <tr><td><strong>Middleware</strong></td><td>Kode yang jalan sebelum halaman, dipakai untuk cek login dan role.</td></tr>
+          <tr><td><strong>Server Component vs Client</strong></td><td>React di server (tanpa <code>use client</code>) vs di browser (interaktif, <code>fetch</code>, state).</td></tr>
+          <tr><td><strong>Prisma Accelerate</strong></td><td>Layanan koneksi/cache di atas PostgreSQL; URL database berawalan <code>prisma+postgres://</code>.</td></tr>
+          <tr><td><strong>Route group</strong></td><td>Folder <code>(nama)</code> di <code>app/</code> untuk merapikan file tanpa menambah segmen URL.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>15.8 Checklist demo saat presentasi</h3>
+      <div class="card">
+        <ol style="margin:0;">
+          <li>Tampilkan halaman <strong>publik paket</strong> → jelaskan sumber data API.</li>
+          <li>Login sebagai <strong>jamaah</strong> → pesan paket → halaman pembayaran.</li>
+          <li>Login sebagai <strong>admin keuangan</strong> → daftar pembayaran / verifikasi.</li>
+          <li>Login sebagai <strong>admin operasional</strong> → data jamaah atau paket.</li>
+          <li>Tunjukkan dokumen HTML ini untuk <strong>diagram</strong> jika projector sempit.</li>
+        </ol>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer" id="footer-info">
+    <p><strong>Cara membuka file ini</strong></p>
+    <p>Opsi 1 — Langsung: klik ganda <code>public/presentasi-flow.html</code> di folder proyek (browser akan membuka file://).</p>
+    <p>Opsi 2 — Lewat Next.js: jalankan <code>npm run dev</code>, lalu buka <strong>http://localhost:3000/presentasi-flow.html</strong> (port bisa 3001 jika 3000 sibuk).</p>
+    <p>Diagram Mermaid memuat skrip dari internet (CDN). Tanpa koneksi, teks dan tabel tetap terbaca; gambar diagram mungkin kosong.</p>
+    <p style="margin-top:1rem;">Ada Tour Travel — dokumen presentasi alur &amp; kode.</p>
+  </footer>
+
+    </div><!-- main-column -->
+  </div><!-- layout -->
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: "base",
+      themeVariables: {
+        primaryColor: "#ccfbf1",
+        primaryTextColor: "#0f172a",
+        primaryBorderColor: "#14b8a6",
+        lineColor: "#334155",
+        secondaryColor: "#e0f2fe",
+        tertiaryColor: "#f1f5f9",
+        fontFamily: "Segoe UI, system-ui, sans-serif"
+      },
+      flowchart: { curve: "basis", padding: 12 },
+      sequence: { actorMargin: 24, boxMargin: 8 }
+    });
+  </script>
+  <script>
+    (function () {
+      var toggle = document.getElementById("menu-toggle");
+      var side = document.getElementById("side-nav");
+      var overlay = document.getElementById("nav-overlay");
+      if (!toggle || !side || !overlay) return;
+
+      function closeNav() {
+        side.classList.remove("is-open");
+        overlay.classList.remove("is-open");
+        toggle.setAttribute("aria-expanded", "false");
+        overlay.setAttribute("aria-hidden", "true");
+      }
+      function openNav() {
+        side.classList.add("is-open");
+        overlay.classList.add("is-open");
+        toggle.setAttribute("aria-expanded", "true");
+        overlay.setAttribute("aria-hidden", "false");
+      }
+
+      toggle.addEventListener("click", function () {
+        if (side.classList.contains("is-open")) closeNav();
+        else openNav();
+      });
+      overlay.addEventListener("click", closeNav);
+
+      side.querySelectorAll('a[href^="#"]').forEach(function (a) {
+        a.addEventListener("click", function () {
+          if (window.matchMedia("(max-width: 960px)").matches) closeNav();
+        });
+      });
+
+      var sectionIds = [
+        "ringkasan", "peran", "middleware", "auth", "jamaah", "admin", "data", "api",
+        "arsitektur", "request", "peta-file", "daftar-kode", "rantai-kode", "konvensi", "teknis", "tambahan-diagram"
+      ];
+      var navLinks = document.querySelectorAll(".side-nav a[data-section]");
+      if ("IntersectionObserver" in window && navLinks.length) {
+        var io = new IntersectionObserver(
+          function (entries) {
+            entries.forEach(function (en) {
+              if (!en.isIntersecting) return;
+              var sid = en.target.id;
+              navLinks.forEach(function (link) {
+                link.classList.toggle("is-active", link.getAttribute("data-section") === sid);
+              });
+            });
+          },
+          { rootMargin: "-12% 0px -55% 0px", threshold: 0 }
+        );
+        sectionIds.forEach(function (id) {
+          var el = document.getElementById(id);
+          if (el) io.observe(el);
+        });
+      }
+    })();
+  </script>
+</body>
+</html>

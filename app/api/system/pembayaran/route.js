@@ -174,6 +174,28 @@ export async function PATCH(req) {
       data: updateData,
     });
 
+    // Jika status diubah ke TERVERIFIKASI, cek apakah semua pembayaran sudah lunas
+    if (status === "TERVERIFIKASI") {
+      const semuaPembayaran = await prisma.pembayaran.findMany({
+        where: { pendaftaranId: pembayaran.pendaftaranId },
+      });
+      const semuaLunas = semuaPembayaran.every((p) =>
+        p.id === id ? true : p.status === "TERVERIFIKASI"
+      );
+      if (semuaLunas) {
+        await prisma.pendaftaran.update({
+          where: { id: pembayaran.pendaftaranId },
+          data: { status: "TERKONFIRMASI" },
+        });
+      } else {
+        // Minimal ada 1 terverifikasi → set MENUNGGU (bukan TIDAK_TERKONFIRMASI)
+        await prisma.pendaftaran.update({
+          where: { id: pembayaran.pendaftaranId },
+          data: { status: "MENUNGGU" },
+        });
+      }
+    }
+
     return new Response(JSON.stringify(updated), {
       status: 200,
       headers: { "Content-Type": "application/json" },

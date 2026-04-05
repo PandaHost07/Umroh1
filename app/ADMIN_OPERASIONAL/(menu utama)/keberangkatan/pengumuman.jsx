@@ -5,6 +5,7 @@ import { HiSpeakerphone } from "react-icons/hi";
 import { alertSuccess, alertError } from "@/components/Alert/alert";
 import formatDate from "@/components/Date/formatDate";
 import AdminContainer from "@/components/Container/adminContainer";
+import Swal from "sweetalert2";
 
 export default function AnnouncementPage({ paketId }) {
   const [list, setList] = useState([]);
@@ -27,7 +28,17 @@ export default function AnnouncementPage({ paketId }) {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Hapus pengumuman ini?")) return;
+    const result = await Swal.fire({
+      title: "Hapus Pengumuman?",
+      text: "Pengumuman ini akan dihapus permanen.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Ya, Hapus",
+      cancelButtonText: "Batal",
+    });
+    if (!result.isConfirmed) return;
     try {
       const res = await fetch(`/api/system/delete?model=pengumuman&id=${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Gagal menghapus");

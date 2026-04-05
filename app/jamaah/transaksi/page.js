@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { Badge, Button, Spinner } from "flowbite-react";
 import formatDate from "@/components/Date/formatDate";
 import formatCurrency from "@/components/Currency/currency";
-import { HiCash, HiTrash, HiX, HiEye } from "react-icons/hi";
+import { HiCash, HiTrash, HiX } from "react-icons/hi";
 import { alertSuccess, alertError } from "@/components/Alert/alert";
 import Swal from "sweetalert2";
 import { useRouter } from "next/navigation";

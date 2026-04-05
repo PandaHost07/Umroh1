@@ -7,37 +7,24 @@ import { FaPhoneAlt, FaQuoteLeft } from "react-icons/fa";
 import { IoMdTime } from "react-icons/io";
 import { IoLocationOutline } from "react-icons/io5";
 import { MdOutlineMail } from "react-icons/md";
+import { useEffect, useState } from "react";
 
 import Container from "@/components/Container/container";
 import WhymeComponent from "@/components/WhyWe/whyme";
 import kabah from "../../public/kabah.png";
 import logoImage from "../../public/logo_badge.png";
 
-const testimoni = [
-  {
-    nama: "Budi Santoso",
-    judul: "Pengalaman Ibadah yang Luar Biasa",
-    deskripsi:
-      "Saya sangat puas dengan layanan dari Ada Tour Travel. Semua proses dari awal hingga akhir berjalan lancar dan profesional. Terima kasih Ada Tour Travel!",
-    rating: 5,
-  },
-  {
-    nama: "Siti Aminah",
-    judul: "Perjalanan yang Tak Terlupakan",
-    deskripsi:
-      "Perjalanan umrah saya bersama Ada Tour Travel benar-benar tak terlupakan. Mereka sangat memperhatikan detail dan kebutuhan kami selama di tanah suci.",
-    rating: 4,
-  },
-  {
-    nama: "Ahmad Fauzi",
-    judul: "Pelayanan Prima dan Amanah",
-    deskripsi:
-      "Alhamdulillah, perjalanan umrah pertama saya berjalan dengan sangat baik. Tim Ada Tour Travel sangat profesional dan amanah.",
-    rating: 5,
-  },
-];
+const AVATAR_COLORS = ["bg-blue-500", "bg-emerald-500", "bg-violet-500", "bg-rose-500", "bg-amber-500"];
 
 export default function Page() {
+  const [testimoniList, setTestimoniList] = useState([]);
+
+  useEffect(() => {
+    fetch("/api/jamaah/testimoni?limit=3")
+      .then((r) => r.json())
+      .then((d) => { if (d?.testimoni) setTestimoniList(d.testimoni); })
+      .catch(() => {});
+  }, []);
   return (
     <>
       {/* HERO */}
@@ -125,7 +112,7 @@ export default function Page() {
             <div className="flex flex-col space-y-6 py-10 md:pl-12">
               <a
                 target="_blank"
-                href="https://wa.me/+62895330731972"
+                href="https://wa.me/62857252255159"
                 className="flex items-center space-x-4 group hover:scale-[1.02] transition-all"
               >
                 <div className="p-4 rounded-full bg-sky-100 text-sky-700 shadow group-hover:bg-sky-200 transition-all">
@@ -135,7 +122,7 @@ export default function Page() {
                   <div className="text-lg font-semibold group-hover:text-sky-700 transition-colors">
                     Telepon
                   </div>
-                  <div className="text-sm">+62895330731972</div>
+                  <div className="text-sm">0857 2522 5519</div>
                 </div>
               </a>
 
@@ -212,33 +199,44 @@ export default function Page() {
           Apa Kata Mereka?
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 px-3 md:mb-12">
-          {testimoni.map((ts, i) => (
-            <div
-              key={i}
-              className="relative bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-300"
-            >
-              <FaQuoteLeft className="absolute top-4 right-4 text-blue-50" size={32} />
-              <div className="flex gap-0.5 mb-3">
-                {[...Array(5)].map((_, j) => (
-                  <FaStar
-                    key={j}
-                    size={14}
-                    className={j < ts.rating ? "text-yellow-400" : "text-gray-200"}
-                  />
-                ))}
-              </div>
-              <h5 className="font-bold text-gray-800 mb-2">{ts.judul}</h5>
-              <p className="text-sm text-gray-500 italic mb-4">
-                &ldquo;{ts.deskripsi}&rdquo;
-              </p>
-              <div className="flex items-center gap-3 border-t border-gray-100 pt-3">
-                <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm uppercase shrink-0">
-                  {ts.nama.charAt(0)}
+          {testimoniList.length === 0 ? (
+            // Fallback jika belum ada testimoni di DB
+            [
+              { nama: "Budi Santoso", pesan: "Saya sangat puas dengan layanan dari Ada Tour Travel. Semua proses dari awal hingga akhir berjalan lancar dan profesional.", rating: 5 },
+              { nama: "Siti Aminah", pesan: "Perjalanan umrah saya bersama Ada Tour Travel benar-benar tak terlupakan. Mereka sangat memperhatikan detail dan kebutuhan kami.", rating: 4 },
+              { nama: "Ahmad Fauzi", pesan: "Alhamdulillah, perjalanan umrah pertama saya berjalan dengan sangat baik. Tim Ada Tour Travel sangat profesional dan amanah.", rating: 5 },
+            ].map((ts, i) => (
+              <div key={i} className="relative bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-300">
+                <FaQuoteLeft className="absolute top-4 right-4 text-blue-50" size={32} />
+                <div className="flex gap-0.5 mb-3">
+                  {[...Array(5)].map((_, j) => <FaStar key={j} size={14} className={j < ts.rating ? "text-yellow-400" : "text-gray-200"} />)}
                 </div>
-                <div className="font-semibold text-sm text-gray-700">{ts.nama}</div>
+                <p className="text-sm text-gray-500 italic mb-4">&ldquo;{ts.pesan}&rdquo;</p>
+                <div className="flex items-center gap-3 border-t border-gray-100 pt-3">
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm uppercase shrink-0 ${AVATAR_COLORS[i % AVATAR_COLORS.length]}`}>
+                    {ts.nama.charAt(0)}
+                  </div>
+                  <div className="font-semibold text-sm text-gray-700">{ts.nama}</div>
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          ) : (
+            testimoniList.map((ts, i) => (
+              <div key={ts.id || i} className="relative bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-300">
+                <FaQuoteLeft className="absolute top-4 right-4 text-blue-50" size={32} />
+                <div className="flex gap-0.5 mb-3">
+                  {[...Array(5)].map((_, j) => <FaStar key={j} size={14} className={j < ts.rating ? "text-yellow-400" : "text-gray-200"} />)}
+                </div>
+                <p className="text-sm text-gray-500 italic mb-4">&ldquo;{ts.pesan}&rdquo;</p>
+                <div className="flex items-center gap-3 border-t border-gray-100 pt-3">
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm uppercase shrink-0 ${AVATAR_COLORS[i % AVATAR_COLORS.length]}`}>
+                    {(ts.akun?.nama || ts.akunEmail || "?").charAt(0)}
+                  </div>
+                  <div className="font-semibold text-sm text-gray-700">{ts.akun?.nama || ts.akunEmail}</div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
         <div className="flex justify-center pb-8">
           <Button href="/testimoni" color="light">

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Button, Badge, Spinner } from "flowbite-react";
 import { FaStar } from "react-icons/fa";
 import { alertSuccess, alertError } from "@/components/Alert/alert";
+import Swal from "sweetalert2";
 
 export default function TestimoniAdminPage() {
   const [list, setList] = useState(null);
@@ -17,7 +18,17 @@ export default function TestimoniAdminPage() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Hapus testimoni ini?")) return;
+    const result = await Swal.fire({
+      title: "Hapus Testimoni?",
+      text: "Testimoni ini akan dihapus permanen.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Ya, Hapus",
+      cancelButtonText: "Batal",
+    });
+    if (!result.isConfirmed) return;
     try {
       const res = await fetch(`/api/system/delete?model=testimoni&id=${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Gagal menghapus");

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Button, Modal, Label, TextInput, Textarea, Spinner, Select } from "flowbite-react";
 import { alertSuccess, alertError } from "@/components/Alert/alert";
 import { FaEdit, FaTrash } from "react-icons/fa";
+import Swal from "sweetalert2";
 
 const EMPTY = { nama: "", bintang: "", lokasi: "", alamat: "", petaUrl: "", deskripsi: "" };
 
@@ -34,7 +35,17 @@ export default function HotelPage() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Hapus hotel ini?")) return;
+    const result = await Swal.fire({
+      title: "Hapus Hotel?",
+      text: "Data hotel ini akan dihapus permanen.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Ya, Hapus",
+      cancelButtonText: "Batal",
+    });
+    if (!result.isConfirmed) return;
     try {
       const res = await fetch(`/api/system/delete?model=hotel&id=${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Gagal menghapus");

@@ -11,14 +11,17 @@ export async function POST(req) {
     }
 
     const body = await req.json();
-    const { nama, email, password, jenisKelamin, role, telepon } = body;
+    const { nama, email, password, jenisKelamin, telepon } = body;
 
-    if (!nama || !email || !password || !jenisKelamin || !role) {
+    if (!nama || !email || !password || !jenisKelamin) {
       return new Response(
         JSON.stringify({ error: "Semua field wajib diisi" }),
         { status: 400 }
       );
     }
+
+    // Role selalu jamaah untuk registrasi publik — tidak bisa daftar sebagai admin
+    const role = "jamaah";
 
     const existingUser = await prisma.akun.findUnique({ where: { email } });
     if (existingUser) {

@@ -139,7 +139,7 @@ function NavbarComponent({ navbar_list, logo, title = "ADA Tour Travel" }) {
   );
 }
 
-const number = "+6282269630025"
+const number = "62857252255159"
 const textMessage = "Assalamualaikum Saya Ingin Bertanya Tentang Paket Umrah Yang Ada Di ADA Tour & Travel"
 const linkWa = `https://api.whatsapp.com/send/?phone=${number}&text=${textMessage}`
 

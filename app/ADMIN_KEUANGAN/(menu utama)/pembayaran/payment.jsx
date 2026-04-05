@@ -14,6 +14,7 @@ import formatCurrency from "@/components/Currency/currency";
 import formatDate from "@/components/Date/formatDate";
 import { HiOutlineCreditCard } from "react-icons/hi";
 import { alertError, alertSuccess } from "@/components/Alert/alert";
+import Swal from "sweetalert2";
 
 export default function PaymentListPage({ registrationId, role = "JAMAAH" }) {
   const [payments, setPayments] = useState([]);
@@ -48,7 +49,17 @@ export default function PaymentListPage({ registrationId, role = "JAMAAH" }) {
   }, [registrationId]);
 
   const handleDelete = async (id) => {
-    if (!confirm("Yakin ingin menghapus pembayaran ini?")) return;
+    const result = await Swal.fire({
+      title: "Hapus Pembayaran?",
+      text: "Data pembayaran ini akan dihapus permanen.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Ya, Hapus",
+      cancelButtonText: "Batal",
+    });
+    if (!result.isConfirmed) return;
 
     try {
       const res = await fetch(`/api/system/delete?model=pembayaran&&id=${id}`, {
@@ -65,7 +76,17 @@ export default function PaymentListPage({ registrationId, role = "JAMAAH" }) {
   };
 
   const handleValidation = async (id) => {
-    if (!confirm("Validasi pembayaran ini?")) return;
+    const result = await Swal.fire({
+      title: "Validasi Pembayaran?",
+      text: "Pembayaran akan ditandai sebagai terverifikasi.",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: "#16a34a",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Ya, Validasi",
+      cancelButtonText: "Batal",
+    });
+    if (!result.isConfirmed) return;
 
     try {
       setLoadingValidationId(id);

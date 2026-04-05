@@ -26,7 +26,7 @@ export async function POST(req) {
         tanggalSelesai: endDate ? new Date(endDate) : null,
         aktif: isActive !== undefined ? isActive : true,
         dibuatOlehId: createdById || "admin",
-        pendaftaranId: pendaftaranId || "global", // fallback jika tidak terikat
+        pendaftaranId: (pendaftaranId && pendaftaranId !== "global") ? pendaftaranId : null,
       },
     });
 

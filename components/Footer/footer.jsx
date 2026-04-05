@@ -3,6 +3,15 @@ import { BsFillTelephoneFill } from "react-icons/bs";
 import { FaMapMarkerAlt } from "react-icons/fa";
 import Skeleton from "../Skeleton/skeleton";
 
+/** Nomor lokal 08… → wa.me membutuhkan 62… */
+function waMePath(nomor) {
+  if (!nomor) return "#";
+  const d = String(nomor).replace(/\D/g, "");
+  if (!d) return "#";
+  const intl = d.startsWith("0") ? `62${d.slice(1)}` : d.startsWith("62") ? d : `62${d}`;
+  return `https://wa.me/${intl}`;
+}
+
 function FooterComponent({ name, deskripsi, maps, alamat, wa, email, ig }) {
   return (
     <footer
@@ -59,7 +68,7 @@ function FooterComponent({ name, deskripsi, maps, alamat, wa, email, ig }) {
               <ul>
                 <li>
                   <a
-                    href={`https://wa.me/${wa}`}
+                    href={waMePath(wa)}
                     className="flex mb-3 items-center"
                   >
                     <BsFillTelephoneFill
